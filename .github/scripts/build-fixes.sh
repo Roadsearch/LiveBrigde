@@ -31,10 +31,10 @@ from pathlib import Path
 p = Path("app/src/main/java/com/livebridge/rtmp/StreamController.kt")
 s = p.read_text()
 if "MediaProjection" not in s:
-    s = s.replace("import android.graphics.Bitmap\\n", "import android.graphics.Bitmap\\nimport android.media.projection.MediaProjection\\n")
-    s = s.replace("import com.pedro.encoder.input.sources.video.Camera2Source\\n", "import com.pedro.encoder.input.sources.video.Camera2Source\\nimport com.pedro.encoder.input.sources.video.ScreenSource\\nimport com.pedro.encoder.input.sources.audio.InternalAudioSource\\nimport com.pedro.encoder.input.sources.audio.MixAudioSource\\nimport com.pedro.encoder.input.sources.audio.MicrophoneSource\\n")
+    s = s.replace("import android.graphics.Bitmap", "import android.graphics.Bitmap\\nimport android.media.projection.MediaProjection")
+    s = s.replace("import com.pedro.encoder.input.sources.video.Camera2Source", "import com.pedro.encoder.input.sources.video.Camera2Source\\nimport com.pedro.encoder.input.sources.video.ScreenSource\\nimport com.pedro.encoder.input.sources.audio.InternalAudioSource\\nimport com.pedro.encoder.input.sources.audio.MixAudioSource\\nimport com.pedro.encoder.input.sources.audio.MicrophoneSource")
     s = s.replace("    val message: String? = null\\n)", "    val message: String? = null,\\n    val videoSource: String = \\\"Caméra\\\",\\n    val audioSource: String = \\\"Microphone\\\"\\n)")
-    s = s.replace("    var onPreviewStarted: (() -> Unit)? = null\\n", "    var onPreviewStarted: (() -> Unit)? = null\\n    var onRequestScreenCapture: (() -> Unit)? = null\\n    private var mediaProjection: MediaProjection? = null\\n")
+    s = s.replace("    var onPreviewStarted: (() -> Unit)? = null", "    var onPreviewStarted: (() -> Unit)? = null\\n    var onRequestScreenCapture: (() -> Unit)? = null\\n    private var mediaProjection: MediaProjection? = null")
     needle = "    fun switchCamera() {\\n"
     methods = '''    fun requestScreenCapture() {
         onRequestScreenCapture?.invoke() ?: _ui.update { it.copy(message = "Autorise la capture d'écran avec Android.") }
