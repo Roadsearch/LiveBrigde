@@ -31,8 +31,23 @@ p.write_text(s)
 
 p = root / "app/src/main/java/com/livebridge/ui/ElementsScreen.kt"
 s = p.read_text()
-s = s.replace("Alignment.CenterHorizontally", "androidx.compose.ui.Alignment.CenterHorizontally")
-s = s.replace("import androidx.compose.ui.Alignment", "")
+lines = s.splitlines()
+clean = []
+inserted = False
+for line in lines:
+    if line.strip() == "import androidx.compose.ui.Alignment":
+        continue
+    clean.append(line)
+for i, line in enumerate(clean):
+    if line.startswith("package "):
+        clean.insert(i + 1, "import androidx.compose.ui.Alignment")
+        inserted = True
+        break
+if not inserted:
+    raise SystemExit("package declaration not found in ElementsScreen.kt")
+s = "\n".join(clean) + "\n"
+s = s.replace("androidx.compose.ui.Alignment.CenterHorizontally", "Alignment.CenterHorizontally")
+s = s.replace("CenterHorizontally", "Alignment.CenterHorizontally")
 p.write_text(s)
 
 p = root / "app/src/main/java/com/livebridge/ui/PreviewCanvas.kt"
