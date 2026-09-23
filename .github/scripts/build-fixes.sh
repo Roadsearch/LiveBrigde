@@ -91,6 +91,111 @@ new_platform = """PLATFORMS.forEach { name ->
 s = s.replace(old_platform, new_platform)
 p.write_text(s)
 
+# OBS-inspired mobile studio layout.
+p = root / "app/src/main/java/com/livebridge/ui/SetupScreen.kt"
+s = p.read_text()
+
+imports = [
+    "import androidx.compose.foundation.horizontalScroll",
+    "import androidx.compose.material.icons.filled.Add",
+    "import androidx.compose.material.icons.filled.GraphicEq",
+    "import androidx.compose.material.icons.filled.Layers",
+    "import androidx.compose.ui.text.style.TextOverflow",
+]
+for imp in imports:
+    if imp not in s:
+        s = s.replace("\n", "\n" + imp + "\n", 1)
+
+portrait_old = """    } else {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.l), verticalArrangement = Arrangement.spacedBy(Spacing.m)) {
+            StepHeader(1, 3, "Configurer", "Préparez votre diffusion")
+            form()
+            Spacer(Modifier.height(Spacing.s))
+            preview(Modifier.fillMaxWidth())
+        }
+    }
+}"""
+portrait_new = """    } else {
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.l, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            StudioTopBar()
+            preview(Modifier.fillMaxWidth())
+            SceneStrip(studio, onOpenElements)
+            SourceAudioStrip(studio, ui, onOpenElements)
+            form()
+        }
+    }
+}"""
+if portrait_old in s:
+    s = s.replace(portrait_old, portrait_new, 1)
+
+marker2 = "@Composable\nprivate fun IconTextButtonLabel"
+obs = """@Composable
+private fun StudioTopBar() {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text("Studio", style = MaterialTheme.typography.headlineSmall)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(7.dp).background(SemanticColors.success, CircleShape))
+                Text(" Prêt", style = MaterialTheme.typography.bodySmall, color = SemanticColors.success)
+            }
+        }
+        IconButton(onClick = {}) { Icon(Icons.Filled.Tune, contentDescription = "Réglages") }
+    }
+}
+
+@Composable
+private fun SceneStrip(studio: com.livebridge.studio.StudioState, onOpenElements: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Scènes", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            TextButton(onClick = onOpenElements) { Text("Gérer") }
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            studio.scenes.forEach { scene ->
+                FilterChip(selected = scene.id == studio.current.id, onClick = onOpenElements, label = { Text(scene.name, maxLines = 1, overflow = TextOverflow.Ellipsis) })
+            }
+            IconButton(onClick = onOpenElements) { Icon(Icons.Filled.Add, contentDescription = "Ajouter") }
+        }
+    }
+}
+
+@Composable
+private fun SourceAudioStrip(
+    studio: com.livebridge.studio.StudioState,
+    ui: RtmpUi,
+    onOpenElements: () -> Unit
+) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        SettingCard("Sources", "Caméra + éléments", Modifier.weight(1.3f)) {
+            studio.current.sources.take(3).forEach { source ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(source.name, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(if (source.visible) "●" else "○", color = if (source.visible) SemanticColors.success else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            TextButton(onClick = onOpenElements) { Text("Modifier") }
+        }
+        SettingCard("Audio", "Mixage", Modifier.weight(1f)) {
+            AudioMini("Micro", !ui.micMuted)
+            AudioMini("Système", true)
+        }
+    }
+}
+
+"""
+if marker2 not in s: raise SystemExit("marker2 missing")
+if "private fun StudioTopBar()" not in s:
+    s = s.replace(marker2, obs + marker2, 1)
+
+# Add imports used by the studio strip if they are not already present.
+for imp in ["import androidx.compose.foundation.shape.CircleShape", "import androidx.compose.material.icons.filled.Tune"]:
+    if imp not in s:
+        s = s.replace("\n", "\n" + imp + "\n", 1)
+
+p.write_text(s)
 p = root / "app/src/main/java/com/livebridge/ui/PreviewCanvas.kt"
 s = p.read_text()
 old = ') {\n    Canvas(Modifier.fillMaxSize()) {\n'
