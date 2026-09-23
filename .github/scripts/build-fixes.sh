@@ -32,24 +32,12 @@ p.write_text(s)
 p = root / "app/src/main/java/com/livebridge/ui/ElementsScreen.kt"
 s = p.read_text()
 lines = s.splitlines()
-clean = []
-inserted = False
-for line in lines:
-    if line.strip() == "import androidx.compose.ui.Alignment":
-        continue
-    clean.append(line)
-for i, line in enumerate(clean):
-    if line.startswith("package "):
-        clean.insert(i + 1, "import androidx.compose.ui.Alignment")
-        inserted = True
-        break
-if not inserted:
-    raise SystemExit("package declaration not found in ElementsScreen.kt")
+clean = [line for line in lines if line.strip() != "import androidx.compose.ui.Alignment"]
 s = "\n".join(clean) + "\n"
-s = s.replace("androidx.compose.ui.Alignment.CenterHorizontally", "Alignment.CenterHorizontally")
-s = s.replace("CenterHorizontally", "Alignment.CenterHorizontally")
+s = s.replace("Alignment.CenterHorizontally", "androidx.compose.ui.Alignment.CenterHorizontally")
+s = s.replace("CenterHorizontally", "androidx.compose.ui.Alignment.CenterHorizontally")
+s = s.replace("androidx.compose.ui.Alignment.androidx.compose.ui.Alignment.CenterHorizontally", "androidx.compose.ui.Alignment.CenterHorizontally")
 p.write_text(s)
-
 p = root / "app/src/main/java/com/livebridge/ui/PreviewCanvas.kt"
 s = p.read_text()
 old = ') {\n    Canvas(Modifier.fillMaxSize()) {\n'
