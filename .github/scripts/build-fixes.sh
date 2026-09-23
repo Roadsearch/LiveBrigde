@@ -33,8 +33,17 @@ p = Path("app/src/main/java/com/livebridge/rtmp/StreamController.kt")
 s = p.read_text()
 if "import android.media.projection.MediaProjection" not in s:
     s = s.replace("import android.graphics.Bitmap", "import android.graphics.Bitmap\nimport android.media.projection.MediaProjection")
-s = s.replace("import com.pedro.encoder.input.sources.video.Camera2Source",
-              "import com.pedro.encoder.input.sources.video.Camera2Source\nimport com.pedro.encoder.input.sources.video.ScreenSource\nimport com.pedro.encoder.input.sources.audio.InternalAudioSource\nimport com.pedro.encoder.input.sources.audio.MixAudioSource\nimport com.pedro.encoder.input.sources.audio.MicrophoneSource")
+# Add only missing imports; older controller revisions may already contain some of them.
+imports = [
+    "import com.pedro.encoder.input.sources.video.ScreenSource",
+    "import com.pedro.encoder.input.sources.audio.InternalAudioSource",
+    "import com.pedro.encoder.input.sources.audio.MixAudioSource",
+    "import com.pedro.encoder.input.sources.audio.MicrophoneSource",
+]
+for imp in imports:
+    if imp not in s:
+        s = s.replace("import com.pedro.encoder.input.sources.video.Camera2Source",
+                      "import com.pedro.encoder.input.sources.video.Camera2Source\\n" + imp, 1)
 if "val audioSource: String" not in s:
     s = s.replace("    val message: String? = null\n)",
                   "    val message: String? = null,\n    val audioSource: String = \"Microphone\",\n    val videoSource: String = \"Caméra\"\n)")
