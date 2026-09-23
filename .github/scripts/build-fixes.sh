@@ -211,3 +211,121 @@ s = s.replace('color = MaterialTheme.colorScheme.primary,', 'color = primary,')
 s = s.replace('drawCircle(MaterialTheme.colorScheme.primary, handle, point)', 'drawCircle(primary, handle, point)')
 p.write_text(s)
 PY
+
+
+# Replace the actual live dashboard UI as well. The setup screen is not the screen
+# users see after pressing Start; keep the runtime screen OBS-like too.
+p = root / "app/src/main/java/com/livebridge/ui/LiveDashboardScreen.kt"
+s = p.read_text()
+for imp in [
+    "import androidx.compose.foundation.horizontalScroll",
+    "import androidx.compose.foundation.rememberScrollState",
+    "import androidx.compose.foundation.shape.RoundedCornerShape",
+    "import androidx.compose.material.icons.filled.GraphicEq",
+    "import androidx.compose.material.icons.filled.Layers",
+    "import androidx.compose.material.icons.filled.Videocam",
+    "import com.livebridge.studio.SourceType"
+]:
+    if imp not in s:
+        s = s.replace("\n", "\n" + imp + "\n", 1)
+
+# Add a real mobile-studio strip immediately before the quick controls.
+studio_helpers = r'''
+@Composable
+private fun LiveStudioStrip(store: com.livebridge.studio.StudioStore, scene: com.livebridge.studio.Scene, ui: RtmpUi) {
+    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Scènes", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            Text("LIVE", style = MaterialTheme.typography.labelSmall, color = LiveRed, fontWeight = FontWeight.Bold)
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            store.state.value.scenes.forEach { item ->
+                FilterChip(
+                    selected = item.id == scene.id,
+                    onClick = { store.selectScene(item.id) },
+                    label = { Text(item.name, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+                )
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            Column(
+                Modifier.weight(1.25f).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(11.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Layers, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    Text("Sources", Modifier.padding(start = 7.dp).weight(1f), style = MaterialTheme.typography.titleSmall)
+                }
+                scene.sources.take(4).forEach { source ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            if (source.type == SourceType.CAMERA) Icons.Filled.Videocam else Icons.Filled.Layers,
+                            null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(source.name, Modifier.padding(start = 7.dp).weight(1f), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Box(Modifier.size(7.dp).background(if (source.visible) SemanticColors.success else MaterialTheme.colorScheme.outline, CircleShape))
+                    }
+                }
+            }
+            Column(
+                Modifier.weight(.95f).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(11.dp),
+                verticalArrangement = Arrangement.spacedBy(7.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.GraphicEq, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    Text("Mixeur", Modifier.padding(start = 7.dp), style = MaterialTheme.typography.titleSmall)
+                }
+                LiveMeter("Micro", !ui.micMuted)
+                LiveMeter("Système", true)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LiveMeter(label: String, active: Boolean) {
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            repeat(14) { i ->
+                Box(
+                    Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(2.dp))
+                        .background(if (active && i < 10) SemanticColors.success else MaterialTheme.colorScheme.outline)
+                )
+            }
+        }
+    }
+}
+'''
+if "private fun LiveStudioStrip(" not in s:
+    insert_at = s.rfind("\n}")
+    s = s[:insert_at] + "\n" + studio_helpers + s[insert_at:]
+
+# Inject the studio controls into both portrait and landscape layouts.
+s = s.replace(
+    """                LiveHeader(ui)
+                preview()
+            }
+            Column(Modifier.weight(.9f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(Spacing.m)) {""",
+    """                LiveHeader(ui)
+                preview()
+                LiveStudioStrip(store, scene, ui)
+            }
+            Column(Modifier.weight(.9f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(Spacing.m)) {""",
+    1
+)
+s = s.replace(
+    """            LiveHeader(ui)
+            preview()
+            StatsGrid(ui)
+            controls()""",
+    """            LiveHeader(ui)
+            preview()
+            LiveStudioStrip(store, scene, ui)
+            StatsGrid(ui)
+            controls()""",
+    1
+)
+p.write_text(s)
