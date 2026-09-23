@@ -36,32 +36,32 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
                     color = if (ui.streaming) LiveRed else Color(0xFF42D98A),
                     style = MaterialTheme.typography.labelSmall)
             }
-            IconButton({ controller.switchCamera() }) { Icon(Icons.Default.Cameraswitch, null) }
-            IconButton({ controller.setMicMuted(!ui.micMuted) }) {
+            IconButton(onClick = { controller.switchCamera() }) { Icon(Icons.Default.Cameraswitch, null) }
+            IconButton(onClick = { controller.setMicMuted(!ui.micMuted) }) {
                 Icon(if (ui.micMuted) Icons.Default.MicOff else Icons.Default.Mic, null)
             }
         }
         Box(Modifier.padding(horizontal = 10.dp).fillMaxWidth().weight(1f)
             .clip(RoundedCornerShape(18.dp)).background(Color.Black)) {
             AndroidView(
-                Modifier.fillMaxSize(),
-                factory = { SurfaceView(it).also(controller::attachPreview) }
+                modifier = Modifier.fillMaxSize(),
+                factory = { context -> SurfaceView(context).also(controller::attachPreview) }
             )
-            Surface(Modifier.align(Alignment.TopStart).padding(10.dp),
+            Surface(modifier = Modifier.align(Alignment.TopStart).padding(10.dp),
                 color = Color(0xAA000000), shape = RoundedCornerShape(7.dp)) {
                 Text(if (ui.streaming) "● LIVE" else "APERÇU",
                     color = if (ui.streaming) LiveRed else Color.White,
-                    Modifier.padding(horizontal = 9.dp, vertical = 5.dp))
+                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp))
             }
         }
         Column(Modifier.padding(horizontal = 12.dp, vertical = 7.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("SCÈNES", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                TextButton({ store.addScene("Scène ${state.scenes.size + 1}") }) { Text("+ Ajouter") }
+                TextButton(onClick = { store.addScene("Scène ${state.scenes.size + 1}") }) { Text("+ Ajouter") }
             }
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 state.scenes.forEach { s ->
-                    FilterChip(s.id == state.currentId, { store.selectScene(s.id) }, label = { Text(s.name) })
+                    FilterChip(selected = s.id == state.currentId, onClick = { store.selectScene(s.id) }, label = { Text(s.name) })
                 }
             }
             Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -74,27 +74,27 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
                 Text(if (ui.connecting) "Connexion au serveur…" else "Diffusion active",
                     modifier = Modifier.weight(1f),
                     color = if (ui.connecting) Color(0xFFFFC857) else LiveRed)
-                TextButton({ controller.stop() }) { Text("ARRÊTER", color = LiveRed) }
+                TextButton(onClick = { controller.stop() }) { Text("ARRÊTER", color = LiveRed) }
             }
         } else {
             Column(Modifier.padding(12.dp).clip(RoundedCornerShape(18.dp))
                 .background(MaterialTheme.colorScheme.surface).padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("DIFFUSION", fontWeight = FontWeight.Bold)
-                OutlinedTextField(server, { server = it; prefs.put("server", it) },
-                    Modifier.fillMaxWidth(), label = { Text("Serveur RTMP / RTMPS") }, singleLine = true)
-                OutlinedTextField(key, { key = it; prefs.put("key", it) },
-                    Modifier.fillMaxWidth(), label = { Text("Clé de stream") }, singleLine = true,
+                OutlinedTextField(value = server, onValueChange = { server = it; prefs.put("server", it) },
+                    modifier = Modifier.fillMaxWidth(), label = { Text("Serveur RTMP / RTMPS") }, singleLine = true)
+                OutlinedTextField(value = key, onValueChange = { key = it; prefs.put("key", it) },
+                    modifier = Modifier.fillMaxWidth(), label = { Text("Clé de stream") }, singleLine = true,
                     visualTransformation = PasswordVisualTransformation())
                 Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     Quality.values().forEach { q ->
-                        FilterChip(ui.quality == q, { controller.setQuality(q) }, label = { Text(q.label) })
+                        FilterChip(selected = ui.quality == q, onClick = { controller.setQuality(q) }, label = { Text(q.label) })
                     }
                 }
                 Button(
-                    { controller.start(server.trimEnd('/') + "/" + key.trim()) },
+                    onClick = { controller.start(server.trimEnd('/') + "/" + key.trim()) },
                     enabled = server.startsWith("rtmp") && key.isNotBlank(),
-                    Modifier.fillMaxWidth().height(50.dp)
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
                 ) { Icon(Icons.Default.Videocam, null); Spacer(Modifier.width(7.dp)); Text("COMMENCER LE DIRECT", fontWeight = FontWeight.Bold) }
             }
         }
