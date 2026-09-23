@@ -31,14 +31,12 @@ p.write_text(s)
 
 p = root / "app/src/main/java/com/livebridge/ui/ElementsScreen.kt"
 s = p.read_text()
-lines = s.splitlines()
-clean = [line for line in lines if line.strip() != "import androidx.compose.ui.Alignment"]
-s = "\n".join(clean) + "\n"
-s = s.replace("Alignment.CenterHorizontally", "androidx.compose.ui.Alignment.CenterHorizontally")
-s = s.replace("CenterHorizontally", "androidx.compose.ui.Alignment.CenterHorizontally")
-# Normalize any generated duplicate qualification, then ensure the symbol is fully qualified.
-s = s.replace("androidx.compose.ui.Alignment.androidx.compose.ui.Alignment.CenterHorizontally", "androidx.compose.ui.Alignment.CenterHorizontally")
-s = s.replace("androidx.compose.ui.Alignment.androidx.compose.ui.Alignment.CenterHorizontally", "androidx.compose.ui.Alignment.CenterHorizontally")
+# Restore a normal Compose Alignment import and remove any malformed qualification.
+s = s.replace("androidx.compose.ui.Alignment.androidx.compose.ui.Alignment.", "androidx.compose.ui.Alignment.")
+s = s.replace("androidx.compose.ui.Alignment.CenterHorizontally", "Alignment.CenterHorizontally")
+if "import androidx.compose.ui.Alignment" not in s:
+    marker = s.find("\n", s.find("package "))
+    s = s[:marker+1] + "import androidx.compose.ui.Alignment\n" + s[marker+1:]
 p.write_text(s)
 p = root / "app/src/main/java/com/livebridge/ui/PreviewCanvas.kt"
 s = p.read_text()
