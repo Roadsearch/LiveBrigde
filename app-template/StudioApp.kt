@@ -101,7 +101,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
         ui.message?.let {
             Text(it, color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.labelSmall,
-                Modifier.padding(horizontal = 14.dp, vertical = 5.dp))
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp))
         }
     }
 }
