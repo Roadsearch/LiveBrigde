@@ -30,7 +30,18 @@ private fun StreamController.contextReflect(): Context =
     StreamController::class.java.getDeclaredField("app").apply { isAccessible = true }
         .get(this) as Context
 
-private fun StreamController.setMessage(message: String?) {
+private fun StreamController.setAudioState(source: String? = null, message: String? = null) {
+    val field = StreamController::class.java.getDeclaredField("_ui").apply { isAccessible = true }
+    @Suppress("UNCHECKED_CAST")
+    val flow = field.get(this) as kotlinx.coroutines.flow.MutableStateFlow<RtmpUi>
+    val old = flow.value
+    flow.value = old.copy(
+        audioSource = source ?: old.audioSource,
+        message = message
+    )
+}
+
+private fun StreamController.setMessage(message: String?) = setAudioState(message = message)
     val field = StreamController::class.java.getDeclaredField("_ui").apply { isAccessible = true }
     @Suppress("UNCHECKED_CAST")
     val flow = field.get(this) as kotlinx.coroutines.flow.MutableStateFlow<RtmpUi>
@@ -98,7 +109,7 @@ private fun StreamController.changeAudio(source: Any, label: String) {
             it.name == "changeAudioSource" && it.parameterTypes.size == 1
         } ?: error("Changement audio non disponible")
         method.invoke(stream, source)
-        setMessage(null)
+        setAudioState(source = label, message = null)
         log("Source audio : $label")
     }.onFailure { err -> setMessage("Audio indisponible : ${err.message}") }
 }
