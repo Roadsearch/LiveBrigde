@@ -2,6 +2,7 @@ package com.livebridge
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.media.projection.MediaProjectionManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -39,6 +40,15 @@ class MainActivity : ComponentActivity() {
     private var crashDetected by mutableStateOf(false)
     private lateinit var controller: StreamController
     private lateinit var store: StudioStore
+    private lateinit var projectionManager: MediaProjectionManager
+
+    private val screenCaptureLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK && result.data != null) {
+            controller.setScreenProjection(projectionManager.getMediaProjection(result.resultCode, result.data!!))
+        } else {
+            CrashReporter.log(this, "SCREEN_CAPTURE_CANCELLED")
+        }
+    }
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -104,6 +114,8 @@ class MainActivity : ComponentActivity() {
             val prefs = Prefs(this)
             controller = StreamController.get(this)
             store = StudioStore(this, prefs, controller)
+            projectionManager = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            controller.onRequestScreenCapture = { screenCaptureLauncher.launch(projectionManager.createScreenCaptureIntent()) }
         }
         CrashReporter.log(this, "INITIALIZE_STUDIO_OK")
     }
