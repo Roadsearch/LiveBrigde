@@ -11,6 +11,15 @@ import com.pedro.library.generic.GenericStream
 import java.util.WeakHashMap
 
 private val projections = WeakHashMap<StreamController, MediaProjection>()
+private val screenRequests = WeakHashMap<StreamController, (() -> Unit)>()
+
+var StreamController.onRequestScreenCapture: (() -> Unit)?
+    get() = screenRequests[this]
+    set(value) { if (value == null) screenRequests.remove(this) else screenRequests[this] = value }
+
+fun StreamController.requestScreenCapture() {
+    onRequestScreenCapture?.invoke() ?: setMessage("Autorise la capture d'écran avec Android.")
+}
 
 private fun StreamController.streamReflect(): GenericStream = runCatching {
     StreamController::class.java.getDeclaredField("stream").apply { isAccessible = true }
