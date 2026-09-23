@@ -27,7 +27,7 @@ import com.livebridge.rtmp.*
 import com.livebridge.studio.StudioStore
 
 @Composable
-fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui: RtmpUi) {
+fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui: RtmpUi, onPickImage: () -> Unit) {
     var server by remember { mutableStateOf(prefs.get("server", "rtmp://")) }
     var key by remember { mutableStateOf(prefs.get("key", "")) }
     var activeTab by remember { mutableStateOf("Studio") }
@@ -53,7 +53,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
                     activeTab, { activeTab = it }, ui, controller,
                     server, { server = it; prefs.put("server", it) },
                     key, { key = it; prefs.put("key", it) },
-                    selectedSource, { selectedSource = it },
+                    selectedSource, { selectedSource = it }, store, onPickImage,
                     micVolume, { micVolume = it },
                     systemVolume, { systemVolume = it },
                     transition, { transition = it },
@@ -70,7 +70,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
                     activeTab, { activeTab = it }, ui, controller,
                     server, { server = it; prefs.put("server", it) },
                     key, { key = it; prefs.put("key", it) },
-                    selectedSource, { selectedSource = it },
+                    selectedSource, { selectedSource = it }, store, onPickImage,
                     micVolume, { micVolume = it },
                     systemVolume, { systemVolume = it },
                     transition, { transition = it },
@@ -156,7 +156,7 @@ private fun ObsRail(
     modifier: Modifier, activeTab: String, onTab: (String) -> Unit, ui: RtmpUi,
     controller: StreamController, server: String, onServer: (String) -> Unit,
     key: String, onKey: (String) -> Unit, selectedSource: String, onSource: (String) -> Unit,
-    micVolume: Float, onMicVolume: (Float) -> Unit, systemVolume: Float, onSystemVolume: (Float) -> Unit,
+    store: StudioStore, onPickImage: () -> Unit, micVolume: Float, onMicVolume: (Float) -> Unit, systemVolume: Float, onSystemVolume: (Float) -> Unit,
     transition: String, onTransition: (String) -> Unit, transitionMs: Float, onTransitionMs: (Float) -> Unit
 ) {
     Column(modifier.background(Color(0xFF10141B)).padding(9.dp).verticalScroll(rememberScrollState())) {
@@ -172,7 +172,7 @@ private fun ObsRail(
         Spacer(Modifier.height(8.dp))
         when (activeTab) {
             "Studio" -> {
-                ObsSources(selectedSource, onSource, controller)
+                ObsSources(selectedSource, onSource, controller, store, onPickImage)
                 Spacer(Modifier.height(8.dp))
                 ObsMixer(ui, micVolume, onMicVolume, systemVolume, onSystemVolume)
                 Spacer(Modifier.height(8.dp))
@@ -180,7 +180,7 @@ private fun ObsRail(
                 Spacer(Modifier.height(8.dp))
                 ObsControls(ui, controller, server, key)
             }
-            "Sources" -> ObsSources(selectedSource, onSource, controller)
+            "Sources" -> ObsSources(selectedSource, onSource, controller, store, onPickImage)
             "Mixeur" -> ObsMixer(ui, micVolume, onMicVolume, systemVolume, onSystemVolume)
             "Transitions" -> ObsTransitions(transition, onTransition, transitionMs, onTransitionMs)
             "Diffusion" -> ObsBroadcast(ui, controller, server, onServer, key, onKey)
@@ -208,7 +208,7 @@ private fun ObsPanel(title: String, icon: androidx.compose.ui.graphics.vector.Im
 }
 
 @Composable
-private fun ObsSources(selected: String, onSource: (String) -> Unit, controller: StreamController) {
+private fun ObsSources(selected: String, onSource: (String) -> Unit, controller: StreamController, store: StudioStore, onPickImage: () -> Unit) {
     ObsPanel("SOURCES", Icons.Default.Layers) {
         listOf("Caméra", "Écran", "Image / logo", "Texte").forEach { name ->
             Row(
@@ -219,6 +219,8 @@ private fun ObsSources(selected: String, onSource: (String) -> Unit, controller:
                         when (name) {
                             "Caméra" -> controller.useCameraSource()
                             "Écran" -> controller.requestScreenCapture()
+                            "Image / logo" -> onPickImage()
+                            "Texte" -> store.addText("Texte")
                         }
                     }.padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
