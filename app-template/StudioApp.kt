@@ -180,7 +180,7 @@ private fun ObsRail(
                 Spacer(Modifier.height(8.dp))
                 ObsControls(ui, controller, server, key)
             }
-            "Sources" -> ObsSources(selectedSource, onSource)
+            "Sources" -> ObsSources(selectedSource, onSource, controller)
             "Mixeur" -> ObsMixer(ui, micVolume, onMicVolume, systemVolume, onSystemVolume)
             "Transitions" -> ObsTransitions(transition, onTransition, transitionMs, onTransitionMs)
             "Diffusion" -> ObsBroadcast(ui, controller, server, onServer, key, onKey)
