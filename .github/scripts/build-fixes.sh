@@ -215,6 +215,9 @@ p.write_text(s)
 p = root / "app/src/main/java/com/livebridge/ui/LiveDashboardScreen.kt"
 s = p.read_text()
 for imp in [
+    "import androidx.compose.foundation.shape.CircleShape",
+    "import androidx.compose.material3.FilterChip",
+    "import androidx.compose.material3.Icon",
     "import androidx.compose.foundation.horizontalScroll",
     "import androidx.compose.foundation.rememberScrollState",
     "import androidx.compose.foundation.shape.RoundedCornerShape",
