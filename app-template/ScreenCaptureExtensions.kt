@@ -42,12 +42,6 @@ private fun StreamController.setAudioState(source: String? = null, message: Stri
 }
 
 private fun StreamController.setMessage(message: String?) = setAudioState(message = message)
-    val field = StreamController::class.java.getDeclaredField("_ui").apply { isAccessible = true }
-    @Suppress("UNCHECKED_CAST")
-    val flow = field.get(this) as kotlinx.coroutines.flow.MutableStateFlow<RtmpUi>
-    flow.value = flow.value.copy(message = message)
-}
-
 fun StreamController.setScreenProjection(projection: MediaProjection?) {
     if (projection == null) {
         setMessage("La capture d'écran n'a pas été autorisée.")
