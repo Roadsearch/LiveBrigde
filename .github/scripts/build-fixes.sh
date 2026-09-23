@@ -98,6 +98,8 @@ s = p.read_text()
 imports = [
     "import androidx.compose.material.icons.Icons",
     "import androidx.compose.foundation.layout.Box",
+    "import androidx.compose.foundation.layout.size",
+    "import androidx.compose.material3.Icon",
     "import androidx.compose.material3.IconButton",
     "import androidx.compose.foundation.background\nimport androidx.compose.foundation.horizontalScroll",
     "import androidx.compose.material.icons.filled.Add",
@@ -171,23 +173,24 @@ private fun SourceAudioStrip(
     onOpenElements: () -> Unit
 ) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        SettingCard("Sources", "Caméra + éléments", Modifier.weight(1.3f)) {
-            studio.current.sources.take(3).forEach { source ->
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(source.name, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(if (source.visible) "●" else "○", color = if (source.visible) SemanticColors.success else MaterialTheme.colorScheme.onSurfaceVariant)
+        Card(Modifier.weight(1.3f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = MaterialTheme.shapes.medium) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                HeaderIcon(Icons.Default.Layers, "Sources")
+                studio.current.sources.take(4).forEach { source ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(if (source.type == SourceType.CAMERA) Icons.Default.Videocam else Icons.Default.Layers, null, modifier = Modifier.size(16.dp))
+                        Text(source.name, Modifier.padding(start = 7.dp).weight(1f), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(if (source.visible) "●" else "○", color = if (source.visible) SemanticColors.success else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
+                TextButton(onClick = onOpenElements) { Text("Modifier") }
             }
-            TextButton(onClick = onOpenElements) { Text("Modifier") }
         }
-        SettingCard("Audio", "Mixage", Modifier.weight(1f)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Micro", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                Text(if (ui.micMuted) "OFF" else "ON", color = if (ui.micMuted) MaterialTheme.colorScheme.onSurfaceVariant else SemanticColors.success, style = MaterialTheme.typography.labelSmall)
-            }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Système", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                Text("ON", color = SemanticColors.success, style = MaterialTheme.typography.labelSmall)
+        Card(Modifier.weight(1f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = MaterialTheme.shapes.medium) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                HeaderIcon(Icons.Default.GraphicEq, "Audio")
+                MeterRow("Micro", !ui.micMuted)
+                MeterRow("Système", true)
             }
         }
     }
