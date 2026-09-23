@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -61,7 +62,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
             }
         } else {
             Column(Modifier.fillMaxSize()) {
-                ObsTopBar(ui, onSettings = { showSettings = true })
+                ObsTopBar(ui, controller, onSettings = { showSettings = true })
                 ObsPreview(controller, ui, Modifier.fillMaxWidth().heightIn(min = 210.dp, max = 330.dp).padding(10.dp))
                 SceneStrip(state.scenes, state.currentId, store)
                 ObsRail(
@@ -308,7 +309,7 @@ private fun ObsControls(ui: RtmpUi, controller: StreamController, server: String
 }
 
 @Composable
-private fun ControlTile(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, action: () -> Unit) {
+private fun RowScope.ControlTile(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, action: () -> Unit) {
     Surface(Modifier.weight(1f).height(52.dp).clickable { action() },
         color = Color(0xFF11151C), shape = RoundedCornerShape(8.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2A303C))) {
