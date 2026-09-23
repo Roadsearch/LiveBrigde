@@ -36,6 +36,8 @@ clean = [line for line in lines if line.strip() != "import androidx.compose.ui.A
 s = "\n".join(clean) + "\n"
 s = s.replace("Alignment.CenterHorizontally", "androidx.compose.ui.Alignment.CenterHorizontally")
 s = s.replace("CenterHorizontally", "androidx.compose.ui.Alignment.CenterHorizontally")
+# Normalize any generated duplicate qualification, then ensure the symbol is fully qualified.
+s = s.replace("androidx.compose.ui.Alignment.androidx.compose.ui.Alignment.CenterHorizontally", "androidx.compose.ui.Alignment.CenterHorizontally")
 s = s.replace("androidx.compose.ui.Alignment.androidx.compose.ui.Alignment.CenterHorizontally", "androidx.compose.ui.Alignment.CenterHorizontally")
 p.write_text(s)
 p = root / "app/src/main/java/com/livebridge/ui/PreviewCanvas.kt"
