@@ -43,7 +43,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
         if (landscape) {
             Row(Modifier.fillMaxSize()) {
                 Column(Modifier.weight(1f).fillMaxHeight()) {
-                    ObsTopBar(ui, onSettings = { showSettings = true })
+                    ObsTopBar(ui, controller, onSettings = { showSettings = true })
                     ObsPreview(controller, ui, Modifier.weight(1f).padding(10.dp))
                     SceneStrip(state.scenes, state.currentId, store)
                 }
@@ -84,7 +84,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
 }
 
 @Composable
-private fun ObsTopBar(ui: RtmpUi, onSettings: () -> Unit) {
+private fun ObsTopBar(ui: RtmpUi, controller: StreamController, onSettings: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().height(58.dp).background(Color(0xFF11151C)).padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically
