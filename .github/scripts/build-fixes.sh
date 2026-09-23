@@ -297,7 +297,7 @@ private fun LiveMeter(label: String, active: Boolean) {
 }
 '''
 if "private fun LiveStudioStrip(" not in s:
-    insert_at = s.rfind("\n}")
+    insert_at = s.rfind("\n}") + 2
     s = s[:insert_at] + "\n" + studio_helpers + s[insert_at:]
 
 # Inject the studio controls into both portrait and landscape layouts.
