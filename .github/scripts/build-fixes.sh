@@ -8,6 +8,7 @@ rm -rf app/src/main/java/com/livebridge/ui
 mkdir -p app/src/main/java/com/livebridge/ui
 
 cp ../app-template/MainActivity.kt app/src/main/java/com/livebridge/MainActivity.kt
+cp ../app-template/CrashReporter.kt app/src/main/java/com/livebridge/CrashReporter.kt
 cp ../app-template/Theme.kt app/src/main/java/com/livebridge/ui/Theme.kt
 cp ../app-template/StudioApp.kt app/src/main/java/com/livebridge/ui/StudioApp.kt
 
@@ -22,4 +23,4 @@ rm -f app/src/main/java/com/livebridge/ui/StudioScreen.kt
 rm -rf server
 
 # Remove obsolete source files from previous iterations if present.
-find app/src/main/java/com/livebridge -type f -name '*.kt' ! -path 'app/src/main/java/com/livebridge/MainActivity.kt' ! -path 'app/src/main/java/com/livebridge/LiveService.kt' ! -path 'app/src/main/java/com/livebridge/Prefs.kt' ! -path 'app/src/main/java/com/livebridge/rtmp/*' ! -path 'app/src/main/java/com/livebridge/studio/*' ! -path 'app/src/main/java/com/livebridge/ui/*' -delete
+find app/src/main/java/com/livebridge -type f -name '*.kt' ! -path 'app/src/main/java/com/livebridge/MainActivity.kt' ! -path 'app/src/main/java/com/livebridge/CrashReporter.kt' ! -path 'app/src/main/java/com/livebridge/LiveService.kt' ! -path 'app/src/main/java/com/livebridge/Prefs.kt' ! -path 'app/src/main/java/com/livebridge/rtmp/*' ! -path 'app/src/main/java/com/livebridge/studio/*' ! -path 'app/src/main/java/com/livebridge/ui/*' -delete
