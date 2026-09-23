@@ -31,13 +31,17 @@ p.write_text(s)
 
 p = root / "app/src/main/java/com/livebridge/ui/ElementsScreen.kt"
 s = p.read_text()
-# Restore a normal Compose Alignment import and remove any malformed qualification.
-s = s.replace("androidx.compose.ui.Alignment.androidx.compose.ui.Alignment.", "androidx.compose.ui.Alignment.")
+# Normalize Compose Alignment imports/usages deterministically.
+lines = s.splitlines()
+lines = [line for line in lines if not line.strip().startswith("import androidx.compose.ui.Alignment")]
+s = "\n".join(lines) + ("\n" if s.endswith("\n") else "")
+marker = s.find("\n", s.find("package "))
+s = s[:marker+1] + "import androidx.compose.ui.Alignment\n" + s[marker+1:]
 s = s.replace("androidx.compose.ui.Alignment.CenterHorizontally", "Alignment.CenterHorizontally")
-if "import androidx.compose.ui.Alignment" not in s:
-    marker = s.find("\n", s.find("package "))
-    s = s[:marker+1] + "import androidx.compose.ui.Alignment\n" + s[marker+1:]
+s = s.replace("CenterHorizontally", "Alignment.CenterHorizontally")
+s = s.replace("Alignment.Alignment.CenterHorizontally", "Alignment.CenterHorizontally")
 p.write_text(s)
+
 p = root / "app/src/main/java/com/livebridge/ui/PreviewCanvas.kt"
 s = p.read_text()
 old = ') {\n    Canvas(Modifier.fillMaxSize()) {\n'
