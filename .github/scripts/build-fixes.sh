@@ -24,3 +24,86 @@ rm -rf server
 
 # Remove obsolete source files from previous iterations if present.
 find app/src/main/java/com/livebridge -type f -name '*.kt' ! -path 'app/src/main/java/com/livebridge/MainActivity.kt' ! -path 'app/src/main/java/com/livebridge/CrashReporter.kt' ! -path 'app/src/main/java/com/livebridge/LiveService.kt' ! -path 'app/src/main/java/com/livebridge/Prefs.kt' ! -path 'app/src/main/java/com/livebridge/rtmp/*' ! -path 'app/src/main/java/com/livebridge/studio/*' ! -path 'app/src/main/java/com/livebridge/ui/*' -delete
+
+# Enable Android MediaProjection screen capture in the existing RootEncoder controller.
+python3 - <<'PY'
+from pathlib import Path
+p = Path("app/src/main/java/com/livebridge/rtmp/StreamController.kt")
+s = p.read_text()
+if "MediaProjection" not in s:
+    s = s.replace("import android.graphics.Bitmap\\n", "import android.graphics.Bitmap\\nimport android.media.projection.MediaProjection\\n")
+    s = s.replace("import com.pedro.encoder.input.sources.video.Camera2Source\\n", "import com.pedro.encoder.input.sources.video.Camera2Source\\nimport com.pedro.encoder.input.sources.video.ScreenSource\\nimport com.pedro.encoder.input.sources.audio.InternalAudioSource\\nimport com.pedro.encoder.input.sources.audio.MixAudioSource\\nimport com.pedro.encoder.input.sources.audio.MicrophoneSource\\n")
+    s = s.replace("    val message: String? = null\\n)", "    val message: String? = null,\\n    val videoSource: String = \\\"Caméra\\\",\\n    val audioSource: String = \\\"Microphone\\\"\\n)")
+    s = s.replace("    var onPreviewStarted: (() -> Unit)? = null\\n", "    var onPreviewStarted: (() -> Unit)? = null\\n    var onRequestScreenCapture: (() -> Unit)? = null\\n    private var mediaProjection: MediaProjection? = null\\n")
+    needle = "    fun switchCamera() {\\n"
+    methods = '''    fun requestScreenCapture() {
+        onRequestScreenCapture?.invoke() ?: _ui.update { it.copy(message = "Autorise la capture d'écran avec Android.") }
+    }
+
+    fun setScreenProjection(projection: MediaProjection) {
+        mediaProjection?.let { old -> if (old !== projection) runCatching { old.stop() } }
+        mediaProjection = projection
+        runCatching {
+            projection.registerCallback(object : MediaProjection.Callback() {
+                override fun onStop() {
+                    if (mediaProjection === projection) {
+                        mediaProjection = null
+                        main.post { useCameraSource() }
+                    }
+                }
+            }, main)
+            stream.getGlInterface().setForceRender(true, 15)
+            stream.changeVideoSource(ScreenSource(app, projection))
+            _ui.update { it.copy(videoSource = "Écran", message = null) }
+            log("Capture d'écran activée")
+        }.onFailure { e ->
+            _ui.update { it.copy(message = "Capture d'écran indisponible : ${e.message}") }
+            log("Capture écran : ${e.message}")
+        }
+    }
+
+    fun useCameraSource() {
+        runCatching { mediaProjection?.stop() }
+        mediaProjection = null
+        runCatching { stream.changeVideoSource(Camera2Source(app)) }
+            .onSuccess { _ui.update { it.copy(videoSource = "Caméra", message = null) }; log("Source caméra activée") }
+            .onFailure { e -> _ui.update { it.copy(message = "Caméra indisponible : ${e.message}") } }
+    }
+
+    fun useInternalAudio() {
+        val projection = mediaProjection
+        if (android.os.Build.VERSION.SDK_INT < 29 || projection == null) {
+            _ui.update { it.copy(message = "Autorise d'abord la capture d'écran pour l'audio système.") }
+            return
+        }
+        runCatching { stream.changeAudioSource(InternalAudioSource(projection)) }
+            .onSuccess { _ui.update { it.copy(audioSource = "Audio système", message = null) } }
+            .onFailure { e -> _ui.update { it.copy(message = "Audio système indisponible : ${e.message}") } }
+    }
+
+    fun useMixedAudio() {
+        val projection = mediaProjection
+        if (android.os.Build.VERSION.SDK_INT < 29 || projection == null) {
+            _ui.update { it.copy(message = "Autorise d'abord la capture d'écran pour mixer l'audio.") }
+            return
+        }
+        runCatching { stream.changeAudioSource(MixAudioSource(projection)) }
+            .onSuccess { _ui.update { it.copy(audioSource = "Micro + système", message = null) } }
+            .onFailure { e -> _ui.update { it.copy(message = "Mixage audio indisponible : ${e.message}") } }
+    }
+
+'''
+    s = s.replace(needle, methods + needle)
+p.write_text(s)
+PY
+
+# Android 14+ foreground service capability for long-running screen capture.
+python3 - <<'PY'
+from pathlib import Path
+p=Path("app/src/main/AndroidManifest.xml")
+s=p.read_text()
+if "FOREGROUND_SERVICE_MEDIA_PROJECTION" not in s:
+    s=s.replace('<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />','<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />\\n    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />')
+s=s.replace('android:foregroundServiceType="camera|microphone"','android:foregroundServiceType="camera|microphone|mediaProjection"')
+p.write_text(s)
+PY
