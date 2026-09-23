@@ -123,6 +123,17 @@ if "fun requestScreenCapture()" not in s:
 p.write_text(s)
 PY
 
+# Ensure the foreground service requests the MediaProjection type when available.
+python3 - <<'PY'
+from pathlib import Path
+p = Path("app/src/main/java/com/livebridge/LiveService.kt")
+s = p.read_text()
+old = "ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE"
+new = "ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION"
+s = s.replace(old, new)
+p.write_text(s)
+PY
+
 # Add the MediaProjection capability to the existing manifest without injecting literal "\\n" text.
 python3 - <<'PY'
 from pathlib import Path
