@@ -181,7 +181,7 @@ private fun ObsRail(
                 ObsControls(ui, controller, server, key)
             }
             "Sources" -> ObsSources(selectedSource, onSource, controller, store, onPickImage)
-            "Mixeur" -> ObsMixer(ui, micVolume, onMicVolume, systemVolume, onSystemVolume)
+            "Mixeur" -> ObsMixer(ui, controller, micVolume, onMicVolume, systemVolume, onSystemVolume)
             "Transitions" -> ObsTransitions(transition, onTransition, transitionMs, onTransitionMs)
             "Diffusion" -> ObsBroadcast(ui, controller, server, onServer, key, onKey)
         }
