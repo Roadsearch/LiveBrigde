@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+cd LiveBridge
+
 python3 - <<'PY'
 from pathlib import Path
-root = Path("LiveBridge")
+root = Path(".")
 
 p = root / "app/build.gradle.kts"
 s = p.read_text()
