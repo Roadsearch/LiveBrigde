@@ -12,7 +12,6 @@ cp ../app-template/MainActivity.kt app/src/main/java/com/livebridge/MainActivity
 cp ../app-template/CrashReporter.kt app/src/main/java/com/livebridge/CrashReporter.kt
 cp ../app-template/Theme.kt app/src/main/java/com/livebridge/ui/Theme.kt
 cp ../app-template/StudioApp.kt app/src/main/java/com/livebridge/ui/StudioApp.kt
-cp ../app-template/ScreenCaptureExtensions.kt app/src/main/java/com/livebridge/rtmp/ScreenCaptureExtensions.kt
 
 # Remove legacy UI and unused server material from the packaged application.
 rm -f app/src/main/java/com/livebridge/ui/Common.kt
@@ -26,6 +25,9 @@ rm -rf server
 
 # Remove obsolete source files from previous iterations if present.
 find app/src/main/java/com/livebridge -type f -name '*.kt' ! -path 'app/src/main/java/com/livebridge/MainActivity.kt' ! -path 'app/src/main/java/com/livebridge/CrashReporter.kt' ! -path 'app/src/main/java/com/livebridge/LiveService.kt' ! -path 'app/src/main/java/com/livebridge/Prefs.kt' ! -path 'app/src/main/java/com/livebridge/rtmp/*' ! -path 'app/src/main/java/com/livebridge/studio/*' ! -path 'app/src/main/java/com/livebridge/ui/*' -delete
+
+# Copy the extension after legacy-file cleanup so it cannot be removed by the cleanup pass.
+cp ../app-template/ScreenCaptureExtensions.kt app/src/main/java/com/livebridge/rtmp/ScreenCaptureExtensions.kt
 
 # Extend the controller state for the mobile audio mixer.
 python3 - <<'PY'
