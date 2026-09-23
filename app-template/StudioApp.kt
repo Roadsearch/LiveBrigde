@@ -1,5 +1,6 @@
 package com.livebridge.ui
 
+import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -45,7 +46,32 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
             .clip(RoundedCornerShape(18.dp)).background(Color.Black)) {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
-                factory = { context -> SurfaceView(context).also(controller::attachPreview) }
+                factory = { context ->
+                    SurfaceView(context).also { view ->
+                        view.holder.addCallback(object : SurfaceHolder.Callback {
+                            override fun surfaceCreated(holder: SurfaceHolder) {
+                                if (holder.surface.isValid) {
+                                    controller.attachPreview(view)
+                                }
+                            }
+
+                            override fun surfaceChanged(
+                                holder: SurfaceHolder,
+                                format: Int,
+                                width: Int,
+                                height: Int
+                            ) {
+                                if (holder.surface.isValid) {
+                                    controller.onPreviewSize(width, height)
+                                }
+                            }
+
+                            override fun surfaceDestroyed(holder: SurfaceHolder) {
+                                controller.detachPreview()
+                            }
+                        })
+                    }
+                }
             )
             Surface(modifier = Modifier.align(Alignment.TopStart).padding(10.dp),
                 color = Color(0xAA000000), shape = RoundedCornerShape(7.dp)) {
