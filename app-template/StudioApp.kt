@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.livebridge.Prefs
 import com.livebridge.rtmp.*
@@ -101,8 +102,8 @@ private fun ObsTopBar(ui: RtmpUi, onSettings: () -> Unit) {
                     color = if (ui.streaming) Color(0xFFFF3F5E) else Color(0xFF35D07F), fontWeight = FontWeight.Bold)
             }
         }
-        IconButton(onClick = { }) { Icon(Icons.Default.Cameraswitch, "Caméra") }
-        IconButton(onClick = { }) { Icon(if (ui.micMuted) Icons.Default.MicOff else Icons.Default.Mic, "Micro") }
+        IconButton(onClick = { controller.switchCamera() }) { Icon(Icons.Default.Cameraswitch, "Caméra") }
+        IconButton(onClick = { controller.setMicMuted(!ui.micMuted) }) { Icon(if (ui.micMuted) Icons.Default.MicOff else Icons.Default.Mic, "Micro") }
         IconButton(onClick = onSettings) { Icon(Icons.Default.Settings, "Paramètres") }
     }
 }
@@ -281,7 +282,8 @@ private fun ObsControls(ui: RtmpUi, controller: StreamController, server: String
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             ControlTile("MIC", Icons.Default.MicOff) { controller.setMicMuted(!ui.micMuted) }
             ControlTile("CAM", Icons.Default.Cameraswitch) { controller.switchCamera() }
-            ControlTile("REC", Icons.Default.Radio) { controller.toggleRecord() }
+            ControlTile("REC", if (ui.recording) Icons.Default.StopCircle else Icons.Default.Radio) { controller.toggleRecord() }
+            ControlTile("SYNC", Icons.Default.Sync) { controller.resync() }
         }
         Spacer(Modifier.height(2.dp))
         if (ui.streaming || ui.connecting) {
@@ -385,6 +387,31 @@ private fun SettingValue(name: String, value: String) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(name, Modifier.weight(1f), fontSize = 12.sp)
         Text(value, color = Color(0xFF8F98A8), fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun SceneStrip(
+    scenes: List<com.livebridge.studio.Scene>,
+    currentId: String,
+    store: StudioStore
+) {
+    Row(
+        Modifier.fillMaxWidth().height(64.dp).background(Color(0xFF0E1218)).padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            scenes.forEach { scene ->
+                FilterChip(
+                    selected = scene.id == currentId,
+                    onClick = { store.selectScene(scene.id) },
+                    label = { Text(scene.name, fontSize = 9.sp, fontWeight = FontWeight.Bold) }
+                )
+            }
+        }
+        IconButton(onClick = { store.addScene("Scène ${scenes.size + 1}") }) {
+            Icon(Icons.Default.Add, "Ajouter une scène")
+        }
     }
 }
 
