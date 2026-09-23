@@ -3,6 +3,7 @@ package com.livebridge
 import android.Manifest
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -41,6 +42,13 @@ class MainActivity : ComponentActivity() {
     private lateinit var controller: StreamController
     private lateinit var store: StudioStore
     private lateinit var projectionManager: MediaProjectionManager
+
+    private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null && ::store.isInitialized) {
+            runCatching { contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) } }
+                .getOrNull()?.let { store.addImage("Image / logo", it) }
+        }
+    }
 
     private val screenCaptureLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK && result.data != null) {
@@ -88,7 +96,7 @@ class MainActivity : ComponentActivity() {
 
                         permissionsGranted && ::controller.isInitialized && ::store.isInitialized -> {
                             val ui by controller.ui.collectAsState()
-                            StudioApp(controller, store, Prefs(this@MainActivity), ui)
+                            StudioApp(controller, store, Prefs(this@MainActivity), ui, onPickImage = { imagePickerLauncher.launch("image/*") })
                         }
 
                         else -> PermissionScreen(onRequest = ::requestCapturePermissions)
