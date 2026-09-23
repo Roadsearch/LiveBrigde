@@ -131,7 +131,7 @@ portrait_new = """    } else {
 if portrait_old in s:
     s = s.replace(portrait_old, portrait_new, 1)
 
-marker2 = "@Composable\nprivate fun IconTextButtonLabel"
+marker2 = "private fun IconTextButtonLabel"
 obs = """@Composable
 private fun StudioTopBar() {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -192,7 +192,7 @@ private fun SourceAudioStrip(
 }
 
 """
-if marker2 not in s: raise SystemExit("marker2 missing")
+if marker2 not in s: raise SystemExit("IconTextButtonLabel anchor missing")
 if "private fun StudioTopBar()" not in s:
     s = s.replace(marker2, obs + marker2, 1)
 
