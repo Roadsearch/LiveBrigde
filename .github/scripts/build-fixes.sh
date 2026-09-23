@@ -31,26 +31,8 @@ p.write_text(s)
 
 p = root / "app/src/main/java/com/livebridge/ui/ElementsScreen.kt"
 s = p.read_text()
-if "Alignment.CenterHorizontally" not in s:
-    s = s.replace("CenterHorizontally", "Alignment.CenterHorizontally")
-    if "import androidx.compose.ui.Alignment" not in s:
-        lines=s.splitlines()
-        idx=0
-        while idx < len(lines) and lines[idx].startswith("import "): idx+=1
-        lines.insert(idx, "import androidx.compose.ui.Alignment")
-        s="\n".join(lines)+"\n"
-p.write_text(s)
-
-p = root / "app/src/main/java/com/livebridge/ui/ElementsScreen.kt"
-s = p.read_text()
-s = s.replace("Alignment.CenterHorizontally", "CenterHorizontally")
-s = s.replace("CenterHorizontally", "Alignment.CenterHorizontally")
+s = s.replace("Alignment.CenterHorizontally", "androidx.compose.ui.Alignment.CenterHorizontally")
 s = s.replace("import androidx.compose.ui.Alignment", "")
-lines=s.splitlines()
-idx=0
-while idx < len(lines) and (lines[idx].startswith("package ") or lines[idx].startswith("import ")): idx+=1
-lines.insert(idx, "import androidx.compose.ui.Alignment")
-s="\n".join(lines)+"\n"
 p.write_text(s)
 
 p = root / "app/src/main/java/com/livebridge/ui/PreviewCanvas.kt"
