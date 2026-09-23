@@ -173,25 +173,20 @@ private fun SourceAudioStrip(
     onOpenElements: () -> Unit
 ) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Card(Modifier.weight(1.3f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = MaterialTheme.shapes.medium) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                HeaderIcon(Icons.Default.Layers, "Sources")
-                studio.current.sources.take(4).forEach { source ->
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(if (source.type == SourceType.CAMERA) Icons.Default.Videocam else Icons.Default.Layers, null, modifier = Modifier.size(16.dp))
-                        Text(source.name, Modifier.padding(start = 7.dp).weight(1f), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(if (source.visible) "●" else "○", color = if (source.visible) SemanticColors.success else MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+        Column(Modifier.weight(1.3f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text("Sources", style = MaterialTheme.typography.titleSmall)
+            studio.current.sources.take(4).forEach { source ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(source.name, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(if (source.visible) "●" else "○", color = if (source.visible) SemanticColors.success else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                TextButton(onClick = onOpenElements) { Text("Modifier") }
             }
+            TextButton(onClick = onOpenElements) { Text("Modifier") }
         }
-        Card(Modifier.weight(1f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = MaterialTheme.shapes.medium) {
-            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                HeaderIcon(Icons.Default.GraphicEq, "Audio")
-                MeterRow("Micro", !ui.micMuted)
-                MeterRow("Système", true)
-            }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Audio", style = MaterialTheme.typography.titleSmall)
+            Text("Micro  ${if (ui.micMuted) "OFF" else "ON"}", style = MaterialTheme.typography.bodySmall)
+            Text("Système  ON", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
