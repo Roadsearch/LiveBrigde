@@ -172,7 +172,7 @@ private fun ObsRail(
         Spacer(Modifier.height(8.dp))
         when (activeTab) {
             "Studio" -> {
-                ObsSources(selectedSource, onSource)
+                ObsSources(selectedSource, onSource, controller)
                 Spacer(Modifier.height(8.dp))
                 ObsMixer(ui, micVolume, onMicVolume, systemVolume, onSystemVolume)
                 Spacer(Modifier.height(8.dp))
@@ -208,13 +208,13 @@ private fun ObsPanel(title: String, icon: androidx.compose.ui.graphics.vector.Im
 }
 
 @Composable
-private fun ObsSources(selected: String, onSource: (String) -> Unit) {
+private fun ObsSources(selected: String, onSource: (String) -> Unit, controller: StreamController) {
     ObsPanel("SOURCES", Icons.Default.Layers) {
         listOf("Caméra", "Écran", "Image / logo", "Texte").forEach { name ->
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(7.dp))
                     .background(if (selected == name) Color(0x332F5BFF) else Color.Transparent)
-                    .clickable { onSource(name) }.padding(8.dp),
+                    .clickable {\n                        onSource(name)\n                        when (name) {\n                            "Caméra" -> controller.useCameraSource()\n                            "Écran" -> controller.requestScreenCapture()\n                        }\n                    }.padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -226,7 +226,7 @@ private fun ObsSources(selected: String, onSource: (String) -> Unit) {
                     }, null, tint = if (selected == name) Color(0xFF7C8CFF) else Color(0xFF8F98A8),
                     modifier = Modifier.size(17.dp)
                 )
-                Text(name, Modifier.weight(1f).padding(start = 8.dp), fontSize = 11.sp)
+                Column(Modifier.weight(1f).padding(start = 8.dp)) {\n                    Text(name, fontSize = 11.sp)\n                    if (name == "Écran") Text("Autorisation Android requise", fontSize = 8.sp, color = Color(0xFF727B8B))\n                }
                 Icon(Icons.Default.Visibility, null, tint = Color(0xFF8F98A8), modifier = Modifier.size(15.dp))
                 Spacer(Modifier.width(8.dp))
                 Icon(Icons.Default.Lock, null, tint = Color(0xFF8F98A8), modifier = Modifier.size(14.dp))
