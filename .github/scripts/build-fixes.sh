@@ -96,6 +96,9 @@ p = root / "app/src/main/java/com/livebridge/ui/SetupScreen.kt"
 s = p.read_text()
 
 imports = [
+    "import androidx.compose.material.icons.Icons",
+    "import androidx.compose.foundation.layout.Box",
+    "import androidx.compose.material3.IconButton",
     "import androidx.compose.foundation.background\nimport androidx.compose.foundation.horizontalScroll",
     "import androidx.compose.material.icons.filled.Add",
     "import androidx.compose.material.icons.filled.GraphicEq",
