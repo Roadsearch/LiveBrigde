@@ -96,7 +96,7 @@ p = root / "app/src/main/java/com/livebridge/ui/SetupScreen.kt"
 s = p.read_text()
 
 imports = [
-    "import androidx.compose.foundation.horizontalScroll",
+    "import androidx.compose.foundation.background\nimport androidx.compose.foundation.horizontalScroll",
     "import androidx.compose.material.icons.filled.Add",
     "import androidx.compose.material.icons.filled.GraphicEq",
     "import androidx.compose.material.icons.filled.Layers",
@@ -179,8 +179,14 @@ private fun SourceAudioStrip(
             TextButton(onClick = onOpenElements) { Text("Modifier") }
         }
         SettingCard("Audio", "Mixage", Modifier.weight(1f)) {
-            AudioMini("Micro", !ui.micMuted)
-            AudioMini("Système", true)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Micro", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                Text(if (ui.micMuted) "OFF" else "ON", color = if (ui.micMuted) MaterialTheme.colorScheme.onSurfaceVariant else SemanticColors.success, style = MaterialTheme.typography.labelSmall)
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Système", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                Text("ON", color = SemanticColors.success, style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }
