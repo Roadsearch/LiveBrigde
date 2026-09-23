@@ -50,7 +50,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
                 Column(Modifier.weight(1f).fillMaxHeight()) {
                     ObsTopBar(ui, controller, onSettings = { showSettings = true }, onDashboard = { showDashboard = true })
                     ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selectedSource }?.id, Modifier.weight(1f).padding(10.dp))
-                    SceneStrip(state.scenes, state.currentId, store)
+                    SceneStrip(state.scenes, state.currentId, store, onSceneManager = { showSceneManager = true })
                 }
                 ObsRail(
                     Modifier.width(350.dp).fillMaxHeight(),
@@ -66,7 +66,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
             }
         } else {
             Column(Modifier.fillMaxSize()) {
-                ObsTopBar(ui, controller, onSettings = { showSettings = true })
+                ObsTopBar(ui, controller, onSettings = { showSettings = true }, onDashboard = { showDashboard = true })
                 ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selectedSource }?.id, Modifier.fillMaxWidth().heightIn(min = 210.dp, max = 330.dp).padding(10.dp))
                 SceneStrip(state.scenes, state.currentId, store)
                 ObsRail(
@@ -74,11 +74,11 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
                     activeTab, { activeTab = it }, ui, controller,
                     server, { server = it; prefs.put("server", it) },
                     key, { key = it; prefs.put("key", it) },
-                    selectedSource, { selectedSource = it }, store, onPickImage,
+                    selectedSource, { selectedSource = it }, store, onPickImage, onSourceManager = { showSourceManager = true },
                     micVolume, { micVolume = it },
                     systemVolume, { systemVolume = it },
                     transition, { transition = it },
-                    transitionMs, { transitionMs = it }
+                    transitionMs, { transitionMs = it }, onSceneManager = { showSceneManager = true }
                 )
             }
         }
