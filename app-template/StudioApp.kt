@@ -33,6 +33,9 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
     var key by remember { mutableStateOf(prefs.get("key", "")) }
     var activeTab by remember { mutableStateOf("Studio") }
     var showSettings by remember { mutableStateOf(false) }
+    var showSceneManager by remember { mutableStateOf(false) }
+    var showSourceManager by remember { mutableStateOf(false) }
+    var showDashboard by remember { mutableStateOf(false) }
     var selectedSource by remember { mutableStateOf("Caméra") }
     var micVolume by remember { mutableFloatStateOf(0.80f) }
     var systemVolume by remember { mutableFloatStateOf(0.60f) }
@@ -45,7 +48,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
         if (landscape) {
             Row(Modifier.fillMaxSize()) {
                 Column(Modifier.weight(1f).fillMaxHeight()) {
-                    ObsTopBar(ui, controller, onSettings = { showSettings = true })
+                    ObsTopBar(ui, controller, onSettings = { showSettings = true }, onDashboard = { showDashboard = true })
                     ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selectedSource }?.id, Modifier.weight(1f).padding(10.dp))
                     SceneStrip(state.scenes, state.currentId, store)
                 }
@@ -54,11 +57,11 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
                     activeTab, { activeTab = it }, ui, controller,
                     server, { server = it; prefs.put("server", it) },
                     key, { key = it; prefs.put("key", it) },
-                    selectedSource, { selectedSource = it }, store, onPickImage,
+                    selectedSource, { selectedSource = it }, store, onPickImage, onSourceManager = { showSourceManager = true },
                     micVolume, { micVolume = it },
                     systemVolume, { systemVolume = it },
                     transition, { transition = it },
-                    transitionMs, { transitionMs = it }
+                    transitionMs, { transitionMs = it }, onSceneManager = { showSceneManager = true }
                 )
             }
         } else {
@@ -80,13 +83,24 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
             }
         }
         if (showSettings) {
-            ObsSettingsDialog(onDismiss = { showSettings = false })
+            ObsSettingsDialog(ui, controller, onDismiss = { showSettings = false })
+        }
+        if (showSceneManager) {
+            SceneManagerDialog(state.scenes, state.currentId, store, onDismiss = { showSceneManager = false })
+        }
+        if (showSourceManager) {
+            state.current.sources.firstOrNull { it.name == selectedSource }?.let { src ->
+                SourceManagerDialog(src, store, onDismiss = { showSourceManager = false })
+            }
+        }
+        if (showDashboard) {
+            LiveDashboardDialog(ui, controller, onDismiss = { showDashboard = false })
         }
     }
 }
 
 @Composable
-private fun ObsTopBar(ui: RtmpUi, controller: StreamController, onSettings: () -> Unit) {
+private fun ObsTopBar(ui: RtmpUi, controller: StreamController, onSettings: () -> Unit, onDashboard: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().height(58.dp).background(Color(0xFF11151C)).padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -106,6 +120,7 @@ private fun ObsTopBar(ui: RtmpUi, controller: StreamController, onSettings: () -
         }
         IconButton(onClick = { controller.switchCamera() }) { Icon(Icons.Default.Cameraswitch, "Caméra") }
         IconButton(onClick = { controller.setMicMuted(!ui.micMuted) }) { Icon(if (ui.micMuted) Icons.Default.MicOff else Icons.Default.Mic, "Micro") }
+        IconButton(onClick = onDashboard) { Icon(Icons.Default.Monitor, "Tableau de bord") }
         IconButton(onClick = onSettings) { Icon(Icons.Default.Settings, "Paramètres") }
     }
 }
@@ -195,7 +210,7 @@ private fun ObsRail(
 ) {
     Column(modifier.background(Color(0xFF10141B)).padding(9.dp).verticalScroll(rememberScrollState())) {
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            listOf("Studio", "Sources", "Mixeur", "Transitions", "Diffusion").forEach { tab ->
+            listOf("Studio", "Sources", "Mixeur", "Transitions", "Diffusion", "Outils").forEach { tab ->
                 FilterChip(
                     selected = activeTab == tab,
                     onClick = { onTab(tab) },
@@ -218,6 +233,7 @@ private fun ObsRail(
             "Mixeur" -> ObsMixer(ui, controller, micVolume, onMicVolume, systemVolume, onSystemVolume)
             "Transitions" -> ObsTransitions(transition, onTransition, transitionMs, onTransitionMs)
             "Diffusion" -> ObsBroadcast(ui, controller, server, onServer, key, onKey)
+            "Outils" -> ObsTools(ui, controller, onSceneManager = { showSceneManager = true })
         }
         ui.message?.let {
             Text(it, color = Color(0xFFFF3F5E), fontSize = 10.sp, modifier = Modifier.padding(8.dp))
@@ -242,7 +258,7 @@ private fun ObsPanel(title: String, icon: androidx.compose.ui.graphics.vector.Im
 }
 
 @Composable
-private fun ObsSources(selected: String, onSource: (String) -> Unit, controller: StreamController, store: StudioStore, onPickImage: () -> Unit) {
+private fun ObsSources(selected: String, onSource: (String) -> Unit, controller: StreamController, store: StudioStore, onPickImage: () -> Unit, onSourceManager: () -> Unit) {
     ObsPanel("SOURCES", Icons.Default.Layers) {
         listOf("Caméra", "Écran", "Image / logo", "Texte").forEach { name ->
             Row(
@@ -277,10 +293,10 @@ private fun ObsSources(selected: String, onSource: (String) -> Unit, controller:
                 Icon(Icons.Default.Lock, null, tint = Color(0xFF8F98A8), modifier = Modifier.size(14.dp))
             }
         }
-        OutlinedButton(onClick = { }, modifier = Modifier.fillMaxWidth().height(38.dp)) {
+        OutlinedButton(onClick = onSourceManager, enabled = selected.isNotBlank(), modifier = Modifier.fillMaxWidth().height(38.dp)) {
             Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(5.dp))
-            Text("AJOUTER UNE SOURCE", fontSize = 10.sp)
+            Text("PROPRIÉTÉS DE LA SOURCE", fontSize = 10.sp)
         }
     }
 }
@@ -407,7 +423,7 @@ private fun ObsBroadcast(
 }
 
 @Composable
-private fun ObsSettingsDialog(onDismiss: () -> Unit) {
+private fun ObsSettingsDialog(ui: RtmpUi, controller: StreamController, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("PARAMÈTRES DU STUDIO", fontWeight = FontWeight.Black) },
@@ -415,16 +431,21 @@ private fun ObsSettingsDialog(onDismiss: () -> Unit) {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("CANVAS", color = Color(0xFF7C8CFF), fontSize = 10.sp, fontWeight = FontWeight.Black)
                 SettingValue("Format", "16:9")
-                SettingValue("Orientation", "Automatique")
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    FilterChip(selected = !ui.landscape, onClick = { controller.setOrientation(false) }, label = { Text("PORTRAIT", fontSize = 9.sp) })
+                    FilterChip(selected = ui.landscape, onClick = { controller.setOrientation(true) }, label = { Text("PAYSAGE", fontSize = 9.sp) })
+                }
                 SettingValue("FPS", "30")
                 Text("SORTIE", color = Color(0xFF7C8CFF), fontSize = 10.sp, fontWeight = FontWeight.Black)
-                SettingValue("Résolution", "1280 × 720")
-                SettingValue("Débit vidéo", "4500 Kbit/s")
+                SettingValue("Résolution", ui.quality.label)
+                SettingValue("Débit vidéo", (ui.quality.bitrate / 1000).toString() + " Kbit/s")
                 SettingValue("Encodeur", "H.264")
                 Text("AUDIO", color = Color(0xFF7C8CFF), fontSize = 10.sp, fontWeight = FontWeight.Black)
                 SettingValue("Fréquence", "48 kHz")
                 SettingValue("Canaux", "Stéréo")
                 Text("INTERFACE", color = Color(0xFF7C8CFF), fontSize = 10.sp, fontWeight = FontWeight.Black)
+                SettingValue("Source vidéo", ui.videoSource)
+                SettingValue("Source audio", ui.audioSource)
                 SettingValue("Mode", "Studio mobile")
                 SettingValue("Disposition", "OBS tactile")
             }
@@ -472,4 +493,150 @@ private fun SmallAction(label: String, active: Boolean, action: () -> Unit) {
         color = if (active) LiveRed else MaterialTheme.colorScheme.surfaceVariant) {
         Text(label, Modifier.padding(horizontal = 15.dp, vertical = 9.dp))
     }
+}
+
+
+@Composable
+private fun ObsTools(ui: RtmpUi, controller: StreamController, onSceneManager: () -> Unit) {
+    ObsPanel("OUTILS", Icons.Default.Build) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            OutlinedButton(onClick = controller::resync, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Default.Sync, null, modifier = Modifier.size(15.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("SYNC", fontSize = 9.sp)
+            }
+            OutlinedButton(onClick = onSceneManager, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Default.Movie, null, modifier = Modifier.size(15.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("SCÈNES", fontSize = 9.sp)
+            }
+        }
+        SettingValue("Vidéo", ui.videoSource)
+        SettingValue("Audio", ui.audioSource)
+        SettingValue("Bitrate", ui.bitrateKbps.toString() + " kbit/s")
+        SettingValue("Enregistrement", if (ui.recording) "ACTIF" else "ARRÊTÉ")
+        ui.lastRecordPath?.let { Text(it, color = Color(0xFF8F98A8), fontSize = 8.sp) }
+    }
+}
+
+@Composable
+private fun SceneManagerDialog(
+    scenes: List<com.livebridge.studio.Scene>,
+    currentId: String,
+    store: StudioStore,
+    onDismiss: () -> Unit
+) {
+    var editingId by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("SCÈNES", fontWeight = FontWeight.Black) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                scenes.forEach { scene ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(scene.name, Modifier.weight(1f), fontSize = 11.sp,
+                            fontWeight = if (scene.id == currentId) FontWeight.Bold else FontWeight.Normal)
+                        TextButton(onClick = { editingId = scene.id; name = scene.name }) { Text("RENOMMER", fontSize = 8.sp) }
+                        TextButton(onClick = { store.duplicateScene(scene.id) }) { Text("COPIER", fontSize = 8.sp) }
+                        TextButton(onClick = { store.deleteScene(scene.id) }) { Text("SUPPR.", fontSize = 8.sp) }
+                    }
+                }
+                OutlinedTextField(name, { name = it }, label = { Text("Nom") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Button(onClick = {
+                    if (editingId.isNotBlank()) store.renameScene(editingId, name)
+                    else if (name.isNotBlank()) store.addScene(name)
+                    editingId = ""
+                    name = ""
+                }, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (editingId.isBlank()) "AJOUTER" else "ENREGISTRER")
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("FERMER") } }
+    )
+}
+
+@Composable
+private fun SourceManagerDialog(
+    source: com.livebridge.studio.Source,
+    store: StudioStore,
+    onDismiss: () -> Unit
+) {
+    var name by remember(source.id) { mutableStateOf(source.name) }
+    var text by remember(source.id) { mutableStateOf(source.text) }
+    var size by remember(source.id) { mutableFloatStateOf(source.size) }
+    var textSize by remember(source.id) { mutableFloatStateOf(source.textSize.toFloat()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("PROPRIÉTÉS • " + source.name, fontWeight = FontWeight.Black) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                OutlinedTextField(name, { name = it }, label = { Text("Nom") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                if (source.type == com.livebridge.studio.SourceType.TEXT) {
+                    OutlinedTextField(text, { text = it }, label = { Text("Texte") }, modifier = Modifier.fillMaxWidth())
+                    Text("Taille du texte " + textSize.toInt() + " px", fontSize = 9.sp, color = Color(0xFF8F98A8))
+                    Slider(textSize, { textSize = it }, valueRange = 12f..120f)
+                }
+                Text("Taille " + size.toInt() + "%", fontSize = 9.sp, color = Color(0xFF8F98A8))
+                Slider(size, { size = it }, valueRange = 5f..100f)
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    OutlinedButton(onClick = { store.moveLayer(source.id, -1) }, modifier = Modifier.weight(1f)) { Text("MONTER", fontSize = 8.sp) }
+                    OutlinedButton(onClick = { store.moveLayer(source.id, 1) }, modifier = Modifier.weight(1f)) { Text("DESCENDRE", fontSize = 8.sp) }
+                }
+                Button(
+                    onClick = { store.removeSource(source.id); onDismiss() },
+                    enabled = source.type != com.livebridge.studio.SourceType.CAMERA,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF3F5E)),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("SUPPRIMER") }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                store.rename(source.id, name)
+                if (source.type == com.livebridge.studio.SourceType.TEXT) {
+                    store.updateText(source.id, text, textSize.toInt(), source.color)
+                }
+                store.resizeSource(source.id, size)
+                onDismiss()
+            }) { Text("ENREGISTRER") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("ANNULER") } }
+    )
+}
+
+@Composable
+private fun LiveDashboardDialog(ui: RtmpUi, controller: StreamController, onDismiss: () -> Unit) {
+    var elapsed by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(ui.liveSince, ui.streaming) {
+        while (ui.streaming && ui.liveSince > 0) {
+            elapsed = (System.currentTimeMillis() - ui.liveSince).coerceAtLeast(0L)
+            kotlinx.coroutines.delay(1000)
+        }
+        if (!ui.streaming) elapsed = 0L
+    }
+    val total = elapsed / 1000
+    val h = total / 3600
+    val m = (total % 3600) / 60
+    val sec = total % 60
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("TABLEAU DE BORD LIVE", fontWeight = FontWeight.Black) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                SettingValue("État", if (ui.streaming) "EN DIRECT" else if (ui.connecting) "CONNEXION" else "ARRÊTÉ")
+                SettingValue("Durée", String.format("%02d:%02d:%02d", h, m, sec))
+                SettingValue("Bitrate", ui.bitrateKbps.toString() + " kbit/s")
+                SettingValue("Vidéo", ui.videoSource)
+                SettingValue("Audio", ui.audioSource)
+                SettingValue("Enregistrement", if (ui.recording) "ACTIF" else "ARRÊTÉ")
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedButton(onClick = controller::resync, modifier = Modifier.weight(1f)) { Text("SYNC", fontSize = 9.sp) }
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("FERMER", fontSize = 9.sp) }
+                }
+            }
+        },
+        confirmButton = {}
+    )
 }
