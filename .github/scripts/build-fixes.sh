@@ -131,7 +131,6 @@ portrait_new = """    } else {
 if portrait_old in s:
     s = s.replace(portrait_old, portrait_new, 1)
 
-marker2 = "private fun IconTextButtonLabel"
 obs = """@Composable
 private fun StudioTopBar() {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -192,9 +191,9 @@ private fun SourceAudioStrip(
 }
 
 """
-if marker2 not in s: raise SystemExit("IconTextButtonLabel anchor missing")
 if "private fun StudioTopBar()" not in s:
-    s = s.replace(marker2, obs + marker2, 1)
+    insert_at = s.rfind("\n}")
+    s = s[:insert_at] + obs + s[insert_at:]
 
 # Add imports used by the studio strip if they are not already present.
 for imp in ["import androidx.compose.foundation.shape.CircleShape", "import androidx.compose.material.icons.filled.Tune"]:
