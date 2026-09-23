@@ -53,13 +53,14 @@ fun StreamController.setScreenProjection(projection: MediaProjection?) {
         setMessage("La capture d'écran n'a pas été autorisée.")
         return
     }
+    val controller = this
     runCatching {
-        projections[this]?.let { if (it !== projection) runCatching { it.stop() } }
-        projections[this] = projection
+        projections[controller]?.let { if (it !== projection) runCatching { it.stop() } }
+        projections[controller] = projection
         projection.registerCallback(object : MediaProjection.Callback() {
             override fun onStop() {
-                if (projections[this@setScreenProjection] === projection) projections.remove(this@setScreenProjection)
-                useCameraSource()
+                if (projections[controller] === projection) projections.remove(controller)
+                controller.useCameraSource()
             }
         }, android.os.Handler(android.os.Looper.getMainLooper()))
         val stream = streamReflect()
