@@ -32,6 +32,12 @@ python3 - <<'PY'
 from pathlib import Path
 p = Path("app/src/main/AndroidManifest.xml")
 s = p.read_text()
+# Keep the UI state compatible with the external screen/audio source bridge.
+if "val audioSource: String" not in s:
+    s = s.replace(
+        "    val message: String? = null\n)",
+        "    val message: String? = null,\n    val audioSource: String = \"Microphone\"\n)"
+    )
 perm = '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />'
 if "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" not in s:
     marker = '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />'
