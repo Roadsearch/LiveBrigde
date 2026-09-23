@@ -27,17 +27,24 @@ rm -rf server
 # Remove obsolete source files from previous iterations if present.
 find app/src/main/java/com/livebridge -type f -name '*.kt' ! -path 'app/src/main/java/com/livebridge/MainActivity.kt' ! -path 'app/src/main/java/com/livebridge/CrashReporter.kt' ! -path 'app/src/main/java/com/livebridge/LiveService.kt' ! -path 'app/src/main/java/com/livebridge/Prefs.kt' ! -path 'app/src/main/java/com/livebridge/rtmp/*' ! -path 'app/src/main/java/com/livebridge/studio/*' ! -path 'app/src/main/java/com/livebridge/ui/*' -delete
 
-# Add the MediaProjection capability to the existing manifest without injecting literal "\\n" text.
+# Extend the controller state for the mobile audio mixer.
 python3 - <<'PY'
 from pathlib import Path
-p = Path("app/src/main/AndroidManifest.xml")
+p = Path("app/src/main/java/com/livebridge/rtmp/StreamController.kt")
 s = p.read_text()
-# Keep the UI state compatible with the external screen/audio source bridge.
 if "val audioSource: String" not in s:
     s = s.replace(
         "    val message: String? = null\n)",
         "    val message: String? = null,\n    val audioSource: String = \"Microphone\"\n)"
     )
+    p.write_text(s)
+PY
+
+# Add the MediaProjection capability to the existing manifest without injecting literal "\\n" text.
+python3 - <<'PY'
+from pathlib import Path
+p = Path("app/src/main/AndroidManifest.xml")
+s = p.read_text()
 perm = '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />'
 if "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" not in s:
     marker = '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />'
