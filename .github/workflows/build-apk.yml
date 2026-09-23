@@ -39,6 +39,16 @@ jobs:
       - name: Vérifier l'APK
         run: test -s LiveBridge/app/build/outputs/apk/debug/app-debug.apk
 
+      - name: Mettre à jour l'archive source LiveBridge
+        run: |
+          rm -f LiveBridge.zip
+          zip -qr LiveBridge.zip LiveBridge -x "LiveBridge/app/build/*" "LiveBridge/.gradle/*"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add LiveBridge.zip
+          git diff --cached --quiet || git commit -m "chore: package latest LiveBridge mobile studio UI [skip ci]"
+          git push
+
       - name: Renommer l'APK
         run: cp LiveBridge/app/build/outputs/apk/debug/app-debug.apk LiveBridge-debug.apk
 
