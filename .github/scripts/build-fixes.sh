@@ -45,8 +45,8 @@ for imp in imports:
         s = s.replace("import com.pedro.encoder.input.sources.video.Camera2Source",
                       "import com.pedro.encoder.input.sources.video.Camera2Source\\n" + imp, 1)
 if "val audioSource: String" not in s:
-    s = s.replace("    val message: String? = null\n)",
-                  "    val message: String? = null,\n    val audioSource: String = \"Microphone\",\n    val videoSource: String = \"Caméra\"\n)")
+    needle = "    val message: String? = null"
+    s = s.replace(needle, needle + ',\n    val audioSource: String = "Microphone",\n    val videoSource: String = "Caméra"')
 if "var onRequestScreenCapture" not in s:
     s = s.replace("    var onPreviewStarted: (() -> Unit)? = null",
                   "    var onPreviewStarted: (() -> Unit)? = null\n    var onRequestScreenCapture: (() -> Unit)? = null\n    private var mediaProjection: MediaProjection? = null")
@@ -136,7 +136,7 @@ if "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" not in s:
     else:
         s = s.replace('    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />',
                       '    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />\n' + perm)
-s = s.replace('android:foregroundServiceType="camera|microphone"',
+s = s.replace('android:foregroundServiceType="camera|microphone|mediaProjection"',
               'android:foregroundServiceType="camera|microphone|mediaProjection"')
 p.write_text(s)
 PY
