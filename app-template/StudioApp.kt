@@ -1,5 +1,6 @@
 package com.livebridge.ui
 
+import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.compose.foundation.background
@@ -45,7 +46,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
             Row(Modifier.fillMaxSize()) {
                 Column(Modifier.weight(1f).fillMaxHeight()) {
                     ObsTopBar(ui, controller, onSettings = { showSettings = true })
-                    ObsPreview(controller, ui, Modifier.weight(1f).padding(10.dp))
+                    ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selectedSource }?.id, Modifier.weight(1f).padding(10.dp))
                     SceneStrip(state.scenes, state.currentId, store)
                 }
                 ObsRail(
@@ -63,7 +64,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
         } else {
             Column(Modifier.fillMaxSize()) {
                 ObsTopBar(ui, controller, onSettings = { showSettings = true })
-                ObsPreview(controller, ui, Modifier.fillMaxWidth().heightIn(min = 210.dp, max = 330.dp).padding(10.dp))
+                ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selectedSource }?.id, Modifier.fillMaxWidth().heightIn(min = 210.dp, max = 330.dp).padding(10.dp))
                 SceneStrip(state.scenes, state.currentId, store)
                 ObsRail(
                     Modifier.fillMaxWidth().weight(1f),
@@ -110,12 +111,45 @@ private fun ObsTopBar(ui: RtmpUi, controller: StreamController, onSettings: () -
 }
 
 @Composable
-private fun ObsPreview(controller: StreamController, ui: RtmpUi, modifier: Modifier) {
+private fun ObsPreview(controller: StreamController, ui: RtmpUi, store: StudioStore, selectedSourceId: String?, modifier: Modifier) {
     Box(modifier.clip(RoundedCornerShape(12.dp)).background(Color.Black)) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { context ->
                 SurfaceView(context).also { view ->
+                    var lastX = 0f
+                    var lastY = 0f
+                    var pinchStart = 0f
+                    view.setOnTouchListener { v, event ->
+                        val id = selectedSourceId ?: return@setOnTouchListener false
+                        when (event.actionMasked) {
+                            MotionEvent.ACTION_DOWN -> { lastX = event.x; lastY = event.y; true }
+                            MotionEvent.ACTION_POINTER_DOWN -> {
+                                if (event.pointerCount >= 2) {
+                                    val dx = event.getX(1) - event.getX(0)
+                                    val dy = event.getY(1) - event.getY(0)
+                                    pinchStart = kotlin.math.hypot(dx.toDouble(), dy.toDouble()).toFloat()
+                                }
+                                true
+                            }
+                            MotionEvent.ACTION_MOVE -> {
+                                if (event.pointerCount >= 2 && pinchStart > 0f) {
+                                    val dx = event.getX(1) - event.getX(0)
+                                    val dy = event.getY(1) - event.getY(0)
+                                    val distance = kotlin.math.hypot(dx.toDouble(), dy.toDouble()).toFloat()
+                                    store.resizeSource(id, 25f * distance / pinchStart)
+                                } else {
+                                    val dx = event.x - lastX
+                                    val dy = event.y - lastY
+                                    if (v.width > 0 && v.height > 0) store.moveSource(id, dx / v.width * 100f, dy / v.height * 100f)
+                                    lastX = event.x; lastY = event.y
+                                }
+                                true
+                            }
+                            MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { pinchStart = 0f; true }
+                            else -> false
+                        }
+                    }
                     view.holder.addCallback(object : SurfaceHolder.Callback {
                         override fun surfaceCreated(holder: SurfaceHolder) {
                             if (holder.surface.isValid) controller.attachPreview(view)
