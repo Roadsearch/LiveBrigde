@@ -68,8 +68,8 @@ p.write_text(s)
 p = root / "app/src/main/java/com/livebridge/ui/StudioScreen.kt"
 s = p.read_text()
 if "import androidx.compose.foundation.layout.safeDrawingPadding" not in s:
-    s = s.replace("import androidx.compose.animation.tween\n", "import androidx.compose.animation.tween\nimport androidx.compose.foundation.layout.safeDrawingPadding\n", 1)
-s = s.replace("Box(Modifier.fillMaxSize()) {", "Box(Modifier.fillMaxSize().safeDrawingPadding()) {")
+    s = s.replace("import androidx.compose.animation.tween\n", "import androidx.compose.animation.tween\n", 1)
+s = s.replace("Box(Modifier.fillMaxSize()) {", "Box(Modifier.fillMaxSize().padding(top = 28.dp, bottom = 8.dp)) {")
 p.write_text(s)
 
 p = root / "app/src/main/java/com/livebridge/ui/SetupScreen.kt"
