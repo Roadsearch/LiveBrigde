@@ -174,7 +174,7 @@ private fun ObsRail(
             "Studio" -> {
                 ObsSources(selectedSource, onSource, controller, store, onPickImage)
                 Spacer(Modifier.height(8.dp))
-                ObsMixer(ui, micVolume, onMicVolume, systemVolume, onSystemVolume)
+                ObsMixer(ui, controller, micVolume, onMicVolume, systemVolume, onSystemVolume)
                 Spacer(Modifier.height(8.dp))
                 ObsTransitions(transition, onTransition, transitionMs, onTransitionMs)
                 Spacer(Modifier.height(8.dp))
@@ -252,7 +252,18 @@ private fun ObsSources(selected: String, onSource: (String) -> Unit, controller:
 }
 
 @Composable
-private fun ObsMixer(ui: RtmpUi, mic: Float, onMic: (Float) -> Unit, system: Float, onSystem: (Float) -> Unit) {
+private fun ObsMixer(ui: RtmpUi, controller: StreamController, mic: Float, onMic: (Float) -> Unit, system: Float, onSystem: (Float) -> Unit) {
+    ObsPanel("MIXEUR AUDIO", Icons.Default.VolumeUp) {
+        Text("SOURCE AUDIO", color = Color(0xFF8F98A8), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            FilterChip(selected = ui.audioSource == "Microphone", onClick = { controller.useMicrophoneAudio() }, label = { Text("MIC", fontSize = 9.sp) })
+            FilterChip(selected = ui.audioSource == "Audio système", onClick = { controller.useInternalAudio() }, label = { Text("SYSTÈME", fontSize = 9.sp) })
+            FilterChip(selected = ui.audioSource == "Micro + système", onClick = { controller.useMixedAudio() }, label = { Text("MIX", fontSize = 9.sp) })
+        }
+        ObsFader("Microphone", mic, onMic, ui.micMuted)
+        ObsFader("Audio système", system, onSystem, false)
+    }
+}
     ObsPanel("MIXEUR AUDIO", Icons.Default.VolumeUp) {
         ObsFader("Microphone", mic, onMic, ui.micMuted)
         ObsFader("Audio système", system, onSystem, false)
