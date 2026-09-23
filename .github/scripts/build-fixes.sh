@@ -37,7 +37,7 @@ s = s.replace("import com.pedro.encoder.input.sources.video.Camera2Source",
               "import com.pedro.encoder.input.sources.video.Camera2Source\nimport com.pedro.encoder.input.sources.video.ScreenSource\nimport com.pedro.encoder.input.sources.audio.InternalAudioSource\nimport com.pedro.encoder.input.sources.audio.MixAudioSource\nimport com.pedro.encoder.input.sources.audio.MicrophoneSource")
 if "val audioSource: String" not in s:
     s = s.replace("    val message: String? = null\n)",
-                  "    val message: String? = null,\n    val audioSource: String = \"Microphone\"\n)")
+                  "    val message: String? = null,\n    val audioSource: String = \"Microphone\",\n    val videoSource: String = \"Caméra\"\n)")
 if "var onRequestScreenCapture" not in s:
     s = s.replace("    var onPreviewStarted: (() -> Unit)? = null",
                   "    var onPreviewStarted: (() -> Unit)? = null\n    var onRequestScreenCapture: (() -> Unit)? = null\n    private var mediaProjection: MediaProjection? = null")
