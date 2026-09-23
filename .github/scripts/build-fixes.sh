@@ -253,13 +253,13 @@ private fun LiveStudioStrip(store: com.livebridge.studio.StudioStore, scene: com
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Layers, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    Icon(androidx.compose.material.icons.Icons.Filled.Layers, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                     Text("Sources", Modifier.padding(start = 7.dp).weight(1f), style = MaterialTheme.typography.titleSmall)
                 }
                 scene.sources.take(4).forEach { source ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            if (source.type == SourceType.CAMERA) Icons.Filled.Videocam else Icons.Filled.Layers,
+                            if (source.type == SourceType.CAMERA) androidx.compose.material.icons.Icons.Filled.Videocam else androidx.compose.material.icons.Icons.Filled.Layers,
                             null,
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -274,7 +274,7 @@ private fun LiveStudioStrip(store: com.livebridge.studio.StudioStore, scene: com
                 verticalArrangement = Arrangement.spacedBy(7.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.GraphicEq, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    Icon(androidx.compose.material.icons.Icons.Filled.GraphicEq, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                     Text("Mixeur", Modifier.padding(start = 7.dp), style = MaterialTheme.typography.titleSmall)
                 }
                 LiveMeter("Micro", !ui.micMuted)
