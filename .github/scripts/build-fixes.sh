@@ -67,11 +67,9 @@ p.write_text(s)
 
 p = root / "app/src/main/java/com/livebridge/ui/StudioScreen.kt"
 s = p.read_text()
-if "import androidx.compose.foundation.layout.padding" not in s:
-    s = s.replace("import androidx.compose.animation.tween\n", "import androidx.compose.animation.tween\nimport androidx.compose.foundation.layout.padding\n", 1)
 if "import androidx.compose.ui.unit.dp" not in s:
     s = s.replace("import androidx.compose.ui.Modifier\n", "import androidx.compose.ui.Modifier\nimport androidx.compose.ui.unit.dp\n", 1)
-s = s.replace("Box(Modifier.fillMaxSize()) {", "Box(Modifier.fillMaxSize().padding(top = 28.dp, bottom = 8.dp)) {")
+s = s.replace("Box(Modifier.fillMaxSize().padding(top = 28.dp, bottom = 8.dp)) {", "Box(Modifier.fillMaxSize()) {")
 p.write_text(s)
 
 p = root / "app/src/main/java/com/livebridge/ui/SetupScreen.kt"
