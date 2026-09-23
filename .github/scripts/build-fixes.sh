@@ -192,7 +192,7 @@ private fun SourceAudioStrip(
 
 """
 if "private fun StudioTopBar()" not in s:
-    insert_at = s.rfind("\n}")
+    insert_at = s.rfind("\n}") + 2
     s = s[:insert_at] + obs + s[insert_at:]
 
 # Add imports used by the studio strip if they are not already present.
