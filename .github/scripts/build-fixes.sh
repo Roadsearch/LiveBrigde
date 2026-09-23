@@ -210,9 +210,6 @@ if old in s and 'val primary = MaterialTheme.colorScheme.primary' not in s:
 s = s.replace('color = MaterialTheme.colorScheme.primary,', 'color = primary,')
 s = s.replace('drawCircle(MaterialTheme.colorScheme.primary, handle, point)', 'drawCircle(primary, handle, point)')
 p.write_text(s)
-PY
-
-
 # Replace the actual live dashboard UI as well. The setup screen is not the screen
 # users see after pressing Start; keep the runtime screen OBS-like too.
 p = root / "app/src/main/java/com/livebridge/ui/LiveDashboardScreen.kt"
@@ -329,3 +326,5 @@ s = s.replace(
     1
 )
 p.write_text(s)
+
+PY
