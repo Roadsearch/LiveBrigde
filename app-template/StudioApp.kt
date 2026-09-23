@@ -264,12 +264,6 @@ private fun ObsMixer(ui: RtmpUi, controller: StreamController, mic: Float, onMic
         ObsFader("Audio système", system, onSystem, false)
     }
 }
-    ObsPanel("MIXEUR AUDIO", Icons.Default.VolumeUp) {
-        ObsFader("Microphone", mic, onMic, ui.micMuted)
-        ObsFader("Audio système", system, onSystem, false)
-    }
-}
-
 @Composable
 private fun ObsFader(name: String, value: Float, onValue: (Float) -> Unit, muted: Boolean) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
