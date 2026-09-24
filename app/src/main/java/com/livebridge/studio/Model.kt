@@ -44,19 +44,44 @@ data class StudioState(val scenes: List<Scene>, val currentId: String) {
 }
 
 fun defaultState(): StudioState {
-    val main = Scene(name = "Caméra", sources = listOf(Source(name = "Caméra", type = SourceType.CAMERA)))
-    val pause = Scene(
-        name = "Pause",
+    val s1 = Scene(
+        id = "scene_1",
+        name = "Scène 1",
+        sources = listOf(
+            Source(name = "Caméra", type = SourceType.CAMERA),
+            Source(name = "Logo", type = SourceType.TEXT, text = "LiveBridge", x = 5f, y = 5f, size = 30f, textSize = 36),
+            Source(name = "Titre", type = SourceType.TEXT, text = "Discussion en direct", x = 10f, y = 82f, size = 80f, textSize = 44)
+        )
+    )
+    val s2 = Scene(
+        id = "scene_2",
+        name = "Scène 2",
+        sources = listOf(
+            Source(name = "Caméra", type = SourceType.CAMERA),
+            Source(name = "Écran", type = SourceType.CAMERA)
+        )
+    )
+    val s3 = Scene(
+        id = "scene_3",
+        name = "Scène 3",
+        sources = listOf(
+            Source(name = "Caméra", type = SourceType.CAMERA)
+        )
+    )
+    val s4 = Scene(
+        id = "scene_4",
+        name = "Scène 4",
         sources = listOf(
             Source(
-                name = "Message", type = SourceType.TEXT,
-                text = "Je reviens tout de suite",
-                x = 10f, y = 45f, size = 80f, textSize = 60
+                name = "Texte BRB",
+                type = SourceType.TEXT,
+                text = "BRB - Je reviens tout de suite !",
+                x = 10f, y = 45f, size = 80f, textSize = 54
             ),
             Source(name = "Caméra", type = SourceType.CAMERA, visible = false)
         )
     )
-    return StudioState(listOf(main, pause), main.id)
+    return StudioState(listOf(s1, s2, s3, s4), s1.id)
 }
 
 /** La caméra est toujours la source du fond (dernière de la liste). */
