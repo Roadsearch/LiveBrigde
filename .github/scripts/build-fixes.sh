@@ -26,7 +26,7 @@ rm -f app/src/main/java/com/livebridge/ui/StudioScreen.kt
 rm -rf server
 
 # Remove obsolete source files from previous iterations if present.
-find app/src/main/java/com/livebridge -type f -name '*.kt' ! -path 'app/src/main/java/com/livebridge/MainActivity.kt' ! -path 'app/src/main/java/com/livebridge/CrashReporter.kt' ! -path 'app/src/main/java/com/livebridge/LiveService.kt' ! -path 'app/src/main/java/com/livebridge/Prefs.kt' ! -path 'app/src/main/java/com/livebridge/rtmp/*' ! -path 'app/src/main/java/com/livebridge/studio/*' ! -path 'app/src/main/java/com/livebridge/ui/*' -delete
+find app/src/main/java/com/livebridge -type f -name '*.kt' ! -path 'app/src/main/java/com/livebridge/MainActivity.kt' ! -path 'app/src/main/java/com/livebridge/CrashReporter.kt' ! -path 'app/src/main/java/com/livebridge/LiveService.kt' ! -path 'app/src/main/java/com/livebridge/Prefs.kt' ! -path 'app/src/main/java/com/livebridge/rtmp/*' ! -path 'app/src/main/java/com/livebridge/studio/*' ! -path 'app/src/main/java/com/livebridge/ui/*' ! -path 'app/src/main/java/com/livebridge/gestures/*' -delete
 
 # Add screen capture and audio-source controls directly to the existing RootEncoder controller.
 python3 - <<'PY'
