@@ -151,3 +151,67 @@ s = s.replace('android:foregroundServiceType="camera|microphone|mediaProjection"
               'android:foregroundServiceType="camera|microphone|mediaProjection"')
 p.write_text(s)
 PY
+
+
+# Complete tactile transform support: rotation, precise pinch, reset, and persistent model fields.
+python3 - <<'PY'
+from pathlib import Path
+
+# Persist rotation in Source and remain backward-compatible with existing studio JSON.
+p = Path("app/src/main/java/com/livebridge/studio/Model.kt")
+m = p.read_text()
+if "val rotation: Float = 0f" not in m:
+    m = m.replace("    val size: Float = 25f,\n", "    val size: Float = 25f,\n    val rotation: Float = 0f,\n")
+if '.put("rotation", s.rotation)' not in m:
+    m = m.replace('.put("x", s.x).put("y", s.y).put("size", s.size)\n',
+                  '.put("x", s.x).put("y", s.y).put("size", s.size).put("rotation", s.rotation)\n')
+if "rotation = so.optDouble" not in m:
+    m = m.replace('size = so.optDouble("size", 25.0).toFloat(),\n',
+                  'size = so.optDouble("size", 25.0).toFloat(),\n                rotation = so.optDouble("rotation", 0.0).toFloat(),\n')
+p.write_text(m)
+
+# Add transform operations used by the mobile editor.
+p = Path("app/src/main/java/com/livebridge/studio/StudioStore.kt")
+s = p.read_text()
+if "fun rotateSource(" not in s:
+    needle = '    private fun clamp(v: Float, lo: Float, hi: Float) = max(lo, min(hi, v))\n'
+    methods = '''    fun rotateSource(id: String, deltaDegrees: Float) = editCurrent(transform = mapSource(id) { s ->
+        s.copy(rotation = ((s.rotation + deltaDegrees + 180f) % 360f) - 180f)
+    })
+
+    fun resetTransform(id: String) = editCurrent(transform = mapSource(id) {
+        it.copy(x = 10f, y = 10f, size = 25f, rotation = 0f)
+    })
+
+'''
+    s = s.replace(needle, methods + needle)
+# Respect locks for all tactile transforms.
+s = s.replace('fun moveSource(id: String, dxPercent: Float, dyPercent: Float) = editCurrent(transform = mapSource(id) { s ->',
+              'fun moveSource(id: String, dxPercent: Float, dyPercent: Float) = editCurrent(transform = mapSource(id) { s ->\n        if (s.locked) return@mapSource s')
+s = s.replace('fun resizeSource(id: String, size: Float) = editCurrent(transform = mapSource(id) { s ->',
+              'fun resizeSource(id: String, size: Float) = editCurrent(transform = mapSource(id) { s ->\n        if (s.locked) return@mapSource s')
+s = s.replace('fun rotateSource(id: String, deltaDegrees: Float) = editCurrent(transform = mapSource(id) { s ->',
+              'fun rotateSource(id: String, deltaDegrees: Float) = editCurrent(transform = mapSource(id) { s ->\n        if (s.locked) return@mapSource s')
+p.write_text(s)
+
+# Apply Source.rotation to the actual RootEncoder object filters.
+p = Path("app/src/main/java/com/livebridge/rtmp/StreamController.kt")
+s = p.read_text()
+if "private fun applyRotation(" not in s:
+    marker = "    fun renderScene(scene: Scene, imageFor: (Source) -> Bitmap?) {\n"
+    fn = '''    private fun applyRotation(filter: BaseObjectFilterRender, degrees: Float) {
+        runCatching {
+            val m = filter.javaClass.methods.firstOrNull {
+                it.name == "setRotation" && it.parameterTypes.size == 1 &&
+                    (it.parameterTypes[0] == Float::class.java || it.parameterTypes[0] == Float::class.javaPrimitiveType)
+            }
+            m?.invoke(filter, degrees)
+        }
+    }
+
+'''
+    s = s.replace(marker, fn + marker)
+s = s.replace("                    applyPosition(f, s.x, s.y)\n", "                    applyPosition(f, s.x, s.y)\n                    applyRotation(f, s.rotation)\n")
+s = s.replace("                    applyPosition(f, s.x, s.y)\n                }\n            }\n        }", "                    applyPosition(f, s.x, s.y)\n                    applyRotation(f, s.rotation)\n                }\n            }\n        }")
+p.write_text(s)
+PY
