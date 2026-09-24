@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -26,6 +27,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.livebridge.Prefs
 import com.livebridge.rtmp.*
 import com.livebridge.studio.StudioStore
+import com.livebridge.studio.Source
 
 @Composable
 fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui: RtmpUi, onPickImage: () -> Unit) {
@@ -49,7 +51,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
             Row(Modifier.fillMaxSize()) {
                 Column(Modifier.weight(1f).fillMaxHeight()) {
                     ObsTopBar(ui, controller, onSettings = { showSettings = true }, onDashboard = { showDashboard = true })
-                    ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selectedSource }?.id, Modifier.weight(1f).padding(10.dp))
+                    ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selectedSource }, Modifier.weight(1f).padding(10.dp))
                     SceneStrip(state.scenes, state.currentId, store, onSceneManager = { showSceneManager = true })
                 }
                 ObsRail(
@@ -126,7 +128,8 @@ private fun ObsTopBar(ui: RtmpUi, controller: StreamController, onSettings: () -
 }
 
 @Composable
-private fun ObsPreview(controller: StreamController, ui: RtmpUi, store: StudioStore, selectedSourceId: String?, modifier: Modifier) {
+private fun ObsPreview(controller: StreamController, ui: RtmpUi, store: StudioStore, selectedSource: Source?, modifier: Modifier) {
+    val latestSource by rememberUpdatedState(selectedSource)
     Box(modifier.clip(RoundedCornerShape(12.dp)).background(Color.Black)) {
         AndroidView(
             modifier = Modifier.fillMaxSize(),
@@ -134,72 +137,112 @@ private fun ObsPreview(controller: StreamController, ui: RtmpUi, store: StudioSt
                 SurfaceView(context).also { view ->
                     var lastX = 0f
                     var lastY = 0f
-                    var pinchStart = 0f
+                    var startDistance = 0f
+                    var startSize = 25f
+                    var lastAngle = 0f
+                    var lastCenterX = 0f
+                    var lastCenterY = 0f
+                    var moved = false
+                    var downAt = 0L
+                    var downX = 0f
+                    var downY = 0f
+                    fun distance(e: MotionEvent): Float {
+                        if (e.pointerCount < 2) return 0f
+                        val dx = e.getX(1) - e.getX(0)
+                        val dy = e.getY(1) - e.getY(0)
+                        return kotlin.math.hypot(dx.toDouble(), dy.toDouble()).toFloat()
+                    }
+                    fun angle(e: MotionEvent): Float {
+                        if (e.pointerCount < 2) return 0f
+                        val dx = e.getX(1) - e.getX(0)
+                        val dy = e.getY(1) - e.getY(0)
+                        return Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
+                    }
+                    fun centerX(e: MotionEvent) = if (e.pointerCount >= 2) (e.getX(0) + e.getX(1)) / 2f else e.x
+                    fun centerY(e: MotionEvent) = if (e.pointerCount >= 2) (e.getY(0) + e.getY(1)) / 2f else e.y
                     view.setOnTouchListener { v, event ->
-                        val id = selectedSourceId ?: return@setOnTouchListener false
+                        val source = latestSource ?: return@setOnTouchListener false
+                        val id = source.id
                         when (event.actionMasked) {
-                            MotionEvent.ACTION_DOWN -> { lastX = event.x; lastY = event.y; true }
+                            MotionEvent.ACTION_DOWN -> {
+                                lastX = event.x; lastY = event.y
+                                downX = event.x; downY = event.y
+                                downAt = System.currentTimeMillis(); moved = false
+                                true
+                            }
                             MotionEvent.ACTION_POINTER_DOWN -> {
                                 if (event.pointerCount >= 2) {
-                                    val dx = event.getX(1) - event.getX(0)
-                                    val dy = event.getY(1) - event.getY(0)
-                                    pinchStart = kotlin.math.hypot(dx.toDouble(), dy.toDouble()).toFloat()
+                                    startDistance = distance(event).coerceAtLeast(1f)
+                                    startSize = source.size
+                                    lastAngle = angle(event)
+                                    lastCenterX = centerX(event); lastCenterY = centerY(event)
                                 }
                                 true
                             }
                             MotionEvent.ACTION_MOVE -> {
-                                if (event.pointerCount >= 2 && pinchStart > 0f) {
-                                    val dx = event.getX(1) - event.getX(0)
-                                    val dy = event.getY(1) - event.getY(0)
-                                    val distance = kotlin.math.hypot(dx.toDouble(), dy.toDouble()).toFloat()
-                                    store.resizeSource(id, 25f * distance / pinchStart)
+                                if (event.pointerCount >= 2 && startDistance > 0f) {
+                                    val scale = (distance(event) / startDistance).coerceIn(0.25f, 4f)
+                                    store.resizeSource(id, startSize * scale)
+                                    var delta = angle(event) - lastAngle
+                                    if (delta > 180f) delta -= 360f
+                                    if (delta < -180f) delta += 360f
+                                    if (kotlin.math.abs(delta) > 0.05f) store.rotateSource(id, delta)
+                                    lastAngle = angle(event)
+                                    val cx = centerX(event); val cy = centerY(event)
+                                    if (v.width > 0 && v.height > 0) store.moveSource(id, (cx-lastCenterX)/v.width*100f, (cy-lastCenterY)/v.height*100f)
+                                    lastCenterX = cx; lastCenterY = cy; moved = true
                                 } else {
-                                    val dx = event.x - lastX
-                                    val dy = event.y - lastY
-                                    if (v.width > 0 && v.height > 0) store.moveSource(id, dx / v.width * 100f, dy / v.height * 100f)
-                                    lastX = event.x; lastY = event.y
+                                    val dx = event.x-lastX; val dy = event.y-lastY
+                                    if (v.width > 0 && v.height > 0 && (kotlin.math.abs(dx)>0.5f || kotlin.math.abs(dy)>0.5f)) {
+                                        store.moveSource(id, dx/v.width*100f, dy/v.height*100f); moved = true
+                                    }
+                                    lastX=event.x; lastY=event.y
                                 }
                                 true
                             }
-                            MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { pinchStart = 0f; true }
+                            MotionEvent.ACTION_UP -> {
+                                val held = System.currentTimeMillis()-downAt
+                                val movedDistance = kotlin.math.hypot((event.x-downX).toDouble(), (event.y-downY).toDouble())
+                                if (!moved && held < 280 && movedDistance < 24) store.resetTransform(id)
+                                startDistance=0f; true
+                            }
+                            MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_CANCEL -> { startDistance=0f; true }
                             else -> false
                         }
                     }
                     view.holder.addCallback(object : SurfaceHolder.Callback {
-                        override fun surfaceCreated(holder: SurfaceHolder) {
-                            if (holder.surface.isValid) controller.attachPreview(view)
-                        }
-                        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-                            if (holder.surface.isValid) controller.onPreviewSize(width, height)
-                        }
-                        override fun surfaceDestroyed(holder: SurfaceHolder) {
-                            controller.detachPreview()
-                        }
+                        override fun surfaceCreated(holder: SurfaceHolder) { if (holder.surface.isValid) controller.attachPreview(view) }
+                        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) { if (holder.surface.isValid) controller.onPreviewSize(width, height) }
+                        override fun surfaceDestroyed(holder: SurfaceHolder) { controller.detachPreview() }
                     })
                 }
             }
         )
-        Surface(Modifier.align(Alignment.TopStart).padding(9.dp),
-            color = Color(0xD9000000), shape = RoundedCornerShape(6.dp)) {
-            Text(if (ui.streaming) "● LIVE" else "APERÇU",
-                color = if (ui.streaming) Color(0xFFFF3F5E) else Color.White,
-                fontSize = 10.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp))
-        }
-        Surface(Modifier.align(Alignment.BottomStart).padding(9.dp),
-            color = Color(0xCC000000), shape = RoundedCornerShape(6.dp)) {
-            Text("PROGRAM  •  16:9", color = Color.White, fontSize = 9.sp,
-                modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp))
-        }
-        if (ui.connecting) {
-            Surface(Modifier.align(Alignment.Center), color = Color(0xEE11151C), shape = RoundedCornerShape(10.dp)) {
-                Text("CONNEXION…", color = Color(0xFFFFC857), fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(14.dp))
+        Box(
+            Modifier.fillMaxSize().drawWithContent {
+                drawContent()
+                val src = latestSource ?: return@drawWithContent
+                val left = size.width*(src.x/100f).coerceIn(0f,1f)
+                val top = size.height*(src.y/100f).coerceIn(0f,1f)
+                val width = size.width*(src.size/100f).coerceIn(0.05f,1f)
+                val height = width*0.62f
+                val right=(left+width).coerceAtMost(size.width); val bottom=(top+height).coerceAtMost(size.height)
+                drawRect(Color(0xFF5B7CFF), androidx.compose.ui.geometry.Offset(left,top), androidx.compose.ui.geometry.Size((right-left).coerceAtLeast(8f),(bottom-top).coerceAtLeast(8f)), style=androidx.compose.ui.graphics.drawscope.Stroke(3f))
+                listOf(androidx.compose.ui.geometry.Offset(left,top),androidx.compose.ui.geometry.Offset(right,top),androidx.compose.ui.geometry.Offset(left,bottom),androidx.compose.ui.geometry.Offset(right,bottom)).forEach { drawCircle(Color.White,7f,it) }
             }
+        )
+        Surface(Modifier.align(Alignment.TopStart).padding(9.dp), color=Color(0xD9000000), shape=RoundedCornerShape(6.dp)) {
+            Text(if (ui.streaming) "● LIVE" else "APERÇU", color=if (ui.streaming) Color(0xFFFF3F5E) else Color.White, fontSize=10.sp, fontWeight=FontWeight.Bold, modifier=Modifier.padding(horizontal=8.dp,vertical=5.dp))
         }
+        Surface(Modifier.align(Alignment.TopEnd).padding(9.dp), color=Color(0xCC11151C), shape=RoundedCornerShape(8.dp)) {
+            Text(latestSource?.let { "x \\${it.x.toInt()}  y \\${it.y.toInt()}  • \\${it.size.toInt()}%  • \\${it.rotation.toInt()}°" } ?: "Aucun élément", color=Color.White, fontSize=8.sp, modifier=Modifier.padding(horizontal=8.dp,vertical=5.dp))
+        }
+        Surface(Modifier.align(Alignment.BottomStart).padding(9.dp), color=Color(0xCC000000), shape=RoundedCornerShape(6.dp)) {
+            Text("1 doigt : déplacer  •  2 doigts : taille + rotation + déplacement  •  tap : réinitialiser", color=Color.White, fontSize=8.sp, modifier=Modifier.padding(horizontal=7.dp,vertical=4.dp))
+        }
+        if (ui.connecting) Surface(Modifier.align(Alignment.Center), color=Color(0xEE11151C), shape=RoundedCornerShape(10.dp)) { Text("CONNEXION…", color=Color(0xFFFFC857), fontWeight=FontWeight.Bold, modifier=Modifier.padding(14.dp)) }
     }
 }
-
 @Composable
 private fun ObsRail(
     modifier: Modifier, activeTab: String, onTab: (String) -> Unit, ui: RtmpUi,
