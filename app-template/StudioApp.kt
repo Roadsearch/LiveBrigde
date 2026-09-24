@@ -52,7 +52,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
                 Column(Modifier.weight(1f).fillMaxHeight()) {
                     ObsTopBar(ui, controller, onSettings = { showSettings = true }, onDashboard = { showDashboard = true })
                     ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selectedSource }, Modifier.weight(1f).padding(10.dp))
-                    SceneStrip(state.scenes, state.currentId, store, onSceneManager = onSceneManager)
+                    SceneStrip(state.scenes, state.currentId, store)
                 }
                 ObsRail(
                     Modifier.width(350.dp).fillMaxHeight(),
@@ -63,7 +63,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
                     micVolume, { micVolume = it },
                     systemVolume, { systemVolume = it },
                     transition, { transition = it },
-                    transitionMs, { transitionMs = it }, onSceneManager = { showSceneManager = true }
+                    transitionMs, { transitionMs = it }, onSourceManager = { showSourceManager = true }, onSceneManager = { showSceneManager = true }
                 )
             }
         } else {
