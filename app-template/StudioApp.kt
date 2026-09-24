@@ -169,7 +169,7 @@ private fun MobileHome(ui: RtmpUi, studio: () -> Unit, scenes: () -> Unit, sourc
 }
 
 @Composable
-private fun HomeQuick(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, action: () -> Unit) {
+private fun RowScope.HomeQuick(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, action: () -> Unit) {
     Surface(Modifier.weight(1f).height(74.dp).clickable { action() }, color = Color(0xFF111B2A),
         shape = RoundedCornerShape(12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF243149))) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -487,7 +487,7 @@ private fun ObsRail(
                 Spacer(Modifier.height(8.dp))
                 ObsControls(ui, controller, server, key)
             }
-            "Sources" -> ObsSources(selectedSource, onSource, controller, store, onPickImage)
+            "Sources" -> ObsSources(selectedSource, onSource, controller, store, onPickImage, onSourceManager)
             "Mixeur" -> ObsMixer(ui, controller, micVolume, onMicVolume, systemVolume, onSystemVolume)
             "Transitions" -> ObsTransitions(transition, onTransition, transitionMs, onTransitionMs)
             "Diffusion" -> ObsBroadcast(ui, controller, server, onServer, key, onKey)
