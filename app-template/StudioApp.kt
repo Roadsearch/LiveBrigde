@@ -80,7 +80,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
                     micVolume, { micVolume = it },
                     systemVolume, { systemVolume = it },
                     transition, { transition = it },
-                    transitionMs, { transitionMs = it }, onSceneManager = { showSceneManager = true }
+                    transitionMs, { transitionMs = it }, onSourceManager = { showSourceManager = true }, onSceneManager = { showSceneManager = true }
                 )
             }
         }
