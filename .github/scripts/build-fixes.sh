@@ -12,6 +12,8 @@ cp ../app-template/MainActivity.kt app/src/main/java/com/livebridge/MainActivity
 cp ../app-template/CrashReporter.kt app/src/main/java/com/livebridge/CrashReporter.kt
 cp ../app-template/Theme.kt app/src/main/java/com/livebridge/ui/Theme.kt
 cp ../app-template/StudioApp.kt app/src/main/java/com/livebridge/ui/StudioApp.kt
+mkdir -p app/src/main/java/com/livebridge/gestures
+cp ../app-template/LiveBridgeTransformEngine.kt app/src/main/java/com/livebridge/gestures/LiveBridgeTransformEngine.kt
 
 # Remove legacy UI and unused server material from the packaged application.
 rm -f app/src/main/java/com/livebridge/ui/Common.kt
