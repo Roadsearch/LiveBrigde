@@ -1,0 +1,6 @@
+{
+  "name": "LiveBridge",
+  "description": "Mobile live streaming studio with RTMP/RTMPS broadcasting, scenes, overlays, and gesture controls",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
