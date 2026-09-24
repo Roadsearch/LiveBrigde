@@ -29,11 +29,13 @@ import com.livebridge.rtmp.*
 import com.livebridge.studio.StudioStore
 import com.livebridge.studio.Source
 
+
 @Composable
 fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui: RtmpUi, onPickImage: () -> Unit) {
     var server by remember { mutableStateOf(prefs.get("server", "rtmp://")) }
     var key by remember { mutableStateOf(prefs.get("key", "")) }
-    var activeTab by remember { mutableStateOf("Studio") }
+    var section by remember { mutableStateOf("Accueil") }
+    var studioTab by remember { mutableStateOf("Studio") }
     var showSettings by remember { mutableStateOf(false) }
     var showSceneManager by remember { mutableStateOf(false) }
     var showSourceManager by remember { mutableStateOf(false) }
@@ -45,58 +47,270 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
     var transitionMs by remember { mutableFloatStateOf(300f) }
     val state by store.state.collectAsState()
 
-    BoxWithConstraints(Modifier.fillMaxSize().background(Color(0xFF080A0F))) {
-        val landscape = maxWidth > maxHeight
-        if (landscape) {
-            Row(Modifier.fillMaxSize()) {
-                Column(Modifier.weight(1f).fillMaxHeight()) {
-                    ObsTopBar(ui, controller, onSettings = { showSettings = true }, onDashboard = { showDashboard = true })
-                    ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selectedSource }, Modifier.weight(1f).padding(10.dp))
-                    SceneStrip(state.scenes, state.currentId, store)
+    Box(Modifier.fillMaxSize().background(Color(0xFF070B12))) {
+        Column(Modifier.fillMaxSize()) {
+            when (section) {
+                "Accueil" -> MobileHome(ui, { section = "Studio" }, { section = "Scènes" }, { section = "Sources" },
+                    { studioTab = "Diffusion"; section = "Studio" })
+                "Studio" -> MobileStudio(ui, controller, store, state, selectedSource, { selectedSource = it },
+                    studioTab, { studioTab = it }, server, { server = it; prefs.put("server", it) },
+                    key, { key = it; prefs.put("key", it) }, micVolume, { micVolume = it },
+                    systemVolume, { systemVolume = it }, transition, { transition = it }, transitionMs, { transitionMs = it },
+                    onPickImage, { showSettings = true }, { showDashboard = true },
+                    { showSceneManager = true }, { showSourceManager = true })
+                "Scènes" -> MobileScenes(state.scenes, state.currentId, store) { showSceneManager = true }
+                "Sources" -> MobileSources(selectedSource, { selectedSource = it }, controller, store, onPickImage) { showSourceManager = true }
+                "Audio" -> MobileAudio(ui, controller, micVolume, { micVolume = it }, systemVolume, { systemVolume = it })
+                "Outils" -> MobileTools(ui, controller, { showSceneManager = true }) { section = "Studio" }
+                "Profil" -> MobileProfile { showSettings = true }
+            }
+            Spacer(Modifier.weight(1f))
+            MobileBottomNav(section) { section = it }
+        }
+        if (showSettings) ObsSettingsDialog(ui, controller) { showSettings = false }
+        if (showSceneManager) SceneManagerDialog(state.scenes, state.currentId, store) { showSceneManager = false }
+        if (showSourceManager) state.current.sources.firstOrNull { it.name == selectedSource }?.let {
+            SourceManagerDialog(it, store) { showSourceManager = false }
+        }
+        if (showDashboard) LiveDashboardDialog(ui, controller) { showDashboard = false }
+    }
+}
+
+@Composable
+private fun MobileStudio(
+    ui: RtmpUi, controller: StreamController, store: StudioStore, state: com.livebridge.studio.StudioState,
+    selected: String, onSelected: (String) -> Unit, tab: String, onTab: (String) -> Unit,
+    server: String, onServer: (String) -> Unit, key: String, onKey: (String) -> Unit,
+    mic: Float, onMic: (Float) -> Unit, system: Float, onSystem: (Float) -> Unit,
+    transition: String, onTransition: (String) -> Unit, transitionMs: Float, onTransitionMs: (Float) -> Unit,
+    onPickImage: () -> Unit, onSettings: () -> Unit, onDashboard: () -> Unit,
+    onScenes: () -> Unit, onSourceManager: () -> Unit
+) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        ObsTopBar(ui, controller, onSettings, onDashboard)
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Studio", fontSize = 21.sp, fontWeight = FontWeight.Black)
+                Text(if (ui.streaming) "● En direct" else "● Hors ligne", fontSize = 9.sp,
+                    color = if (ui.streaming) Color(0xFFFF3F5E) else Color(0xFF35D07F))
+            }
+            SmallAction("SCÈNES", false, onScenes)
+            Spacer(Modifier.width(5.dp))
+            SmallAction("+ SOURCE", false, onSourceManager)
+        }
+        ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selected },
+            Modifier.fillMaxWidth().height(235.dp).padding(horizontal = 10.dp))
+        Text("Scènes", fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(12.dp, 7.dp))
+        SceneStrip(state.scenes, state.currentId, store)
+        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            listOf("Studio", "Sources", "Mixeur", "Transitions", "Diffusion", "Outils").forEach {
+                FilterChip(selected = tab == it, onClick = { onTab(it) }, label = { Text(it, fontSize = 9.sp) })
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        when (tab) {
+            "Studio" -> {
+                ObsSources(selected, onSelected, controller, store, onPickImage, onSourceManager)
+                ObsMixer(ui, controller, mic, onMic, system, onSystem)
+                ObsControls(ui, controller, server, key)
+            }
+            "Sources" -> ObsSources(selected, onSelected, controller, store, onPickImage, onSourceManager)
+            "Mixeur" -> ObsMixer(ui, controller, mic, onMic, system, onSystem)
+            "Transitions" -> ObsTransitions(transition, onTransition, transitionMs, onTransitionMs)
+            "Diffusion" -> ObsBroadcast(ui, controller, server, onServer, key, onKey)
+            "Outils" -> ObsTools(ui, controller, onScenes)
+        }
+    }
+}
+
+@Composable
+private fun MobileHome(ui: RtmpUi, studio: () -> Unit, scenes: () -> Unit, sources: () -> Unit, broadcast: () -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Surface(color = Color(0xFF293B80), shape = RoundedCornerShape(10.dp)) {
+                Text("LB", color = Color.White, fontWeight = FontWeight.Black, modifier = Modifier.padding(10.dp))
+            }
+            Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                Text("LiveBridge", fontSize = 20.sp, fontWeight = FontWeight.Black)
+                Text("Diffusez. Partagez. Connectez.", fontSize = 9.sp, color = Color(0xFF8F98A8))
+            }
+            IconButton(onClick = studio) { Icon(Icons.Default.VideoSettings, "Studio") }
+        }
+        Spacer(Modifier.height(18.dp))
+        Surface(Modifier.fillMaxWidth().height(145.dp).clickable { studio() },
+            color = Color(0xFF3021A0), shape = RoundedCornerShape(18.dp)) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Radio, null, tint = Color.White, modifier = Modifier.size(25.dp))
+                    Spacer(Modifier.width(8.dp)); Text("Studio", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Black)
                 }
-                ObsRail(
-                    Modifier.width(350.dp).fillMaxHeight(),
-                    activeTab, { activeTab = it }, ui, controller,
-                    server, { server = it; prefs.put("server", it) },
-                    key, { key = it; prefs.put("key", it) },
-                    selectedSource, { selectedSource = it }, store, onPickImage, onSourceManager = { showSourceManager = true },
-                    micVolume, { micVolume = it },
-                    systemVolume, { systemVolume = it },
-                    transition, { transition = it },
-                    transitionMs, { transitionMs = it }, onSourceManager = { showSourceManager = true }, onSceneManager = { showSceneManager = true }
-                )
-            }
-        } else {
-            Column(Modifier.fillMaxSize()) {
-                ObsTopBar(ui, controller, onSettings = { showSettings = true }, onDashboard = { showDashboard = true })
-                ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selectedSource }, Modifier.fillMaxWidth().heightIn(min = 210.dp, max = 330.dp).padding(10.dp))
-                SceneStrip(state.scenes, state.currentId, store)
-                ObsRail(
-                    Modifier.fillMaxWidth().weight(1f),
-                    activeTab, { activeTab = it }, ui, controller,
-                    server, { server = it; prefs.put("server", it) },
-                    key, { key = it; prefs.put("key", it) },
-                    selectedSource, { selectedSource = it }, store, onPickImage, onSourceManager = { showSourceManager = true },
-                    micVolume, { micVolume = it },
-                    systemVolume, { systemVolume = it },
-                    transition, { transition = it },
-                    transitionMs, { transitionMs = it }, onSourceManager = { showSourceManager = true }, onSceneManager = { showSceneManager = true }
-                )
+                Text("Créez, gérez et diffusez en direct comme un pro.", color = Color.White, fontSize = 11.sp)
+                Text("OUVRIR LE STUDIO  →", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
             }
         }
-        if (showSettings) {
-            ObsSettingsDialog(ui, controller, onDismiss = { showSettings = false })
+        Spacer(Modifier.height(15.dp))
+        Text("Diffusion rapide", fontWeight = FontWeight.Black, fontSize = 14.sp)
+        Row(Modifier.fillMaxWidth().padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            HomeQuick("YouTube", Icons.Default.PlayCircle, broadcast)
+            HomeQuick("Twitch", Icons.Default.LiveTv, broadcast)
+            HomeQuick("Facebook", Icons.Default.Public, broadcast)
+            HomeQuick("Autre", Icons.Default.Add, broadcast)
         }
-        if (showSceneManager) {
-            SceneManagerDialog(state.scenes, state.currentId, store, onDismiss = { showSceneManager = false })
+        Spacer(Modifier.height(16.dp))
+        Text("Mon studio", fontWeight = FontWeight.Black, fontSize = 14.sp)
+        HomeList("Studio actuel", "Caméra • Microphone • qualité vidéo", Icons.Default.VideoCameraFront, studio)
+        HomeList("Mes scènes", "Gérer, dupliquer et réorganiser", Icons.Default.Layers, scenes)
+        HomeList("Mes sources", "Images, texte, écran, caméra", Icons.Default.Collections, sources)
+        Spacer(Modifier.height(8.dp))
+        Text(if (ui.streaming) "● LIVE EN COURS" else "● PRÊT À DIFFUSER",
+            color = if (ui.streaming) Color(0xFFFF3F5E) else Color(0xFF35D07F), fontSize = 10.sp, fontWeight = FontWeight.Black)
+    }
+}
+
+@Composable
+private fun HomeQuick(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, action: () -> Unit) {
+    Surface(Modifier.weight(1f).height(74.dp).clickable { action() }, color = Color(0xFF111B2A),
+        shape = RoundedCornerShape(12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF243149))) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Icon(icon, null, tint = Color(0xFF7C8CFF), modifier = Modifier.size(22.dp)); Text(label, fontSize = 9.sp)
         }
-        if (showSourceManager) {
-            state.current.sources.firstOrNull { it.name == selectedSource }?.let { src ->
-                SourceManagerDialog(src, store, onDismiss = { showSourceManager = false })
+    }
+}
+
+@Composable
+private fun HomeList(title: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector, action: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clickable { action() }.padding(vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+        Surface(color = Color(0xFF151D2A), shape = RoundedCornerShape(9.dp)) { Icon(icon, null, tint = Color(0xFF7C8CFF), modifier = Modifier.padding(9.dp)) }
+        Column(Modifier.weight(1f).padding(horizontal = 10.dp)) { Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold); Text(subtitle, fontSize = 9.sp, color = Color(0xFF8F98A8)) }
+        Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF8F98A8))
+    }
+}
+
+@Composable
+private fun MobileScenes(scenes: List<com.livebridge.studio.Scene>, currentId: String, store: StudioStore, manage: () -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
+        MobileSectionHeader("Scènes", "Gérez vos scènes", Icons.Default.Layers, manage)
+        scenes.forEach { scene ->
+            Surface(Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { store.selectScene(scene.id) },
+                color = if (scene.id == currentId) Color(0xFF142B62) else Color(0xFF111923), shape = RoundedCornerShape(12.dp)) {
+                Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(72.dp, 48.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF222A36)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Landscape, null, tint = Color(0xFF66758C))
+                    }
+                    Text(scene.name, Modifier.weight(1f).padding(horizontal = 10.dp), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    if (scene.id == currentId) Text("ACTIVE", color = Color(0xFF5B7CFF), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.MoreVert, null, tint = Color(0xFF8F98A8))
+                }
             }
         }
-        if (showDashboard) {
-            LiveDashboardDialog(ui, controller, onDismiss = { showDashboard = false })
+        Button(onClick = { store.addScene("Scène " + (scenes.size + 1)) }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Add, null); Spacer(Modifier.width(5.dp)); Text("NOUVELLE SCÈNE")
+        }
+    }
+}
+
+@Composable
+private fun MobileSources(selected: String, onSource: (String) -> Unit, controller: StreamController, store: StudioStore, pickImage: () -> Unit, manage: () -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
+        MobileSectionHeader("Sources", "Caméra, écran, image, texte et audio", Icons.Default.Layers, manage)
+        ObsSources(selected, onSource, controller, store, pickImage, manage)
+        ObsPanel("GESTES TACTILES", Icons.Default.TouchApp) {
+            SettingValue("1 doigt", "Déplacer")
+            SettingValue("2 doigts", "Zoom + rotation + déplacement")
+            SettingValue("Appui long", "Menu / propriétés")
+            SettingValue("Double-tap", "Édition du texte")
+        }
+    }
+}
+
+@Composable
+private fun MobileAudio(ui: RtmpUi, controller: StreamController, mic: Float, onMic: (Float) -> Unit, system: Float, onSystem: (Float) -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
+        MobileSectionHeader("Audio", "Mixeur et niveaux audio", Icons.Default.Mic, null)
+        ObsMixer(ui, controller, mic, onMic, system, onSystem)
+        ObsPanel("OPTIONS AUDIO", Icons.Default.Tune) {
+            SettingValue("Microphone", if (ui.micMuted) "Muet" else "Actif")
+            SettingValue("Source", ui.audioSource); SettingValue("Fréquence", "48 kHz"); SettingValue("Canaux", "Stéréo")
+        }
+    }
+}
+
+@Composable
+private fun MobileTools(ui: RtmpUi, controller: StreamController, scenes: () -> Unit, studio: () -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
+        MobileSectionHeader("Outils", "Contrôle rapide du studio", Icons.Default.Build, null)
+        ToolCard("Mode Studio", "Aperçu + programme", Icons.Default.VideoSettings, studio)
+        ToolCard("Enregistrement", if (ui.recording) "Enregistrement actif" else "Enregistrer votre live", Icons.Default.Radio) { controller.toggleRecord() }
+        ToolCard("Resynchroniser", "Recaler audio / vidéo", Icons.Default.Sync) { controller.resync() }
+        ToolCard("Scènes", "Gérer les scènes", Icons.Default.Layers, scenes)
+        ToolCard("Qualité et paramètres", "Orientation, résolution et sortie", Icons.Default.Settings, studio)
+    }
+}
+
+@Composable
+private fun ToolCard(title: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector, action: () -> Unit) {
+    Surface(Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { action() }, color = Color(0xFF111923),
+        shape = RoundedCornerShape(12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF243149))) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = Color(0xFF7C8CFF), modifier = Modifier.size(24.dp))
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) { Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold); Text(subtitle, fontSize = 9.sp, color = Color(0xFF8F98A8)) }
+            Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF8F98A8))
+        }
+    }
+}
+
+@Composable
+private fun MobileProfile(settings: () -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
+        MobileSectionHeader("Profil", "Compte et préférences", Icons.Default.Person, settings)
+        Surface(Modifier.fillMaxWidth(), color = Color(0xFF111923), shape = RoundedCornerShape(14.dp)) {
+            Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Surface(Modifier.size(52.dp), color = Color(0xFF3223A0), shape = RoundedCornerShape(26.dp)) {
+                    Box(contentAlignment = Alignment.Center) { Text("YD", color = Color.White, fontWeight = FontWeight.Black) }
+                }
+                Column(Modifier.padding(start = 12.dp)) { Text("Profil LiveBridge", fontWeight = FontWeight.Black, fontSize = 14.sp); Text("Compte local", color = Color(0xFF8F98A8), fontSize = 9.sp) }
+            }
+        }
+        ProfileRow("Mon compte", Icons.Default.AccountCircle)
+        ProfileRow("Abonnement", Icons.Default.WorkspacePremium)
+        ProfileRow("Aide & Support", Icons.Default.HelpOutline)
+        ProfileRow("À propos de LiveBridge", Icons.Default.Info)
+        ProfileRow("Paramètres", Icons.Default.Settings, settings)
+    }
+}
+
+@Composable
+private fun ProfileRow(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, action: () -> Unit = {}) {
+    Row(Modifier.fillMaxWidth().clickable { action() }.padding(vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = Color(0xFF8F98A8), modifier = Modifier.size(20.dp))
+        Text(title, Modifier.weight(1f).padding(horizontal = 12.dp), fontSize = 12.sp)
+        Icon(Icons.Default.ChevronRight, null, tint = Color(0xFF8F98A8), modifier = Modifier.size(17.dp))
+    }
+}
+
+@Composable
+private fun MobileSectionHeader(title: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector, action: (() -> Unit)?) {
+    Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, tint = Color(0xFF7C8CFF), modifier = Modifier.size(23.dp))
+        Column(Modifier.weight(1f).padding(horizontal = 9.dp)) { Text(title, fontSize = 21.sp, fontWeight = FontWeight.Black); Text(subtitle, fontSize = 9.sp, color = Color(0xFF8F98A8)) }
+        if (action != null) IconButton(onClick = action) { Icon(Icons.Default.Add, "Ajouter") }
+    }
+}
+
+@Composable
+private fun MobileBottomNav(section: String, onSection: (String) -> Unit) {
+    val items = listOf("Accueil" to Icons.Default.Home, "Studio" to Icons.Default.VideoSettings, "Scènes" to Icons.Default.Layers, "Outils" to Icons.Default.Build, "Profil" to Icons.Default.Person)
+    Surface(color = Color(0xFF0D121A), shadowElevation = 12.dp) {
+        Row(Modifier.fillMaxWidth().height(68.dp), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
+            items.forEach { item ->
+                val selected = section == item.first
+                Column(Modifier.weight(1f).clickable { onSection(item.first) }, horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(item.second, null, tint = if (selected) Color(0xFF5B7CFF) else Color(0xFF7B8595), modifier = Modifier.size(21.dp))
+                    Text(item.first, fontSize = 8.sp, color = if (selected) Color(0xFF5B7CFF) else Color(0xFF7B8595),
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+                }
+            }
         }
     }
 }
