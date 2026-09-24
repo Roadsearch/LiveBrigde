@@ -52,7 +52,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
                 Column(Modifier.weight(1f).fillMaxHeight()) {
                     ObsTopBar(ui, controller, onSettings = { showSettings = true }, onDashboard = { showDashboard = true })
                     ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selectedSource }, Modifier.weight(1f).padding(10.dp))
-                    SceneStrip(state.scenes, state.currentId, store, onSceneManager = { showSceneManager = true })
+                    SceneStrip(state.scenes, state.currentId, store, onSceneManager = onSceneManager)
                 }
                 ObsRail(
                     Modifier.width(350.dp).fillMaxHeight(),
@@ -69,7 +69,7 @@ fun StudioApp(controller: StreamController, store: StudioStore, prefs: Prefs, ui
         } else {
             Column(Modifier.fillMaxSize()) {
                 ObsTopBar(ui, controller, onSettings = { showSettings = true }, onDashboard = { showDashboard = true })
-                ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selectedSource }?.id, Modifier.fillMaxWidth().heightIn(min = 210.dp, max = 330.dp).padding(10.dp))
+                ObsPreview(controller, ui, store, state.current.sources.firstOrNull { it.name == selectedSource }, Modifier.fillMaxWidth().heightIn(min = 210.dp, max = 330.dp).padding(10.dp))
                 SceneStrip(state.scenes, state.currentId, store)
                 ObsRail(
                     Modifier.fillMaxWidth().weight(1f),
@@ -249,7 +249,8 @@ private fun ObsRail(
     controller: StreamController, server: String, onServer: (String) -> Unit,
     key: String, onKey: (String) -> Unit, selectedSource: String, onSource: (String) -> Unit,
     store: StudioStore, onPickImage: () -> Unit, micVolume: Float, onMicVolume: (Float) -> Unit, systemVolume: Float, onSystemVolume: (Float) -> Unit,
-    transition: String, onTransition: (String) -> Unit, transitionMs: Float, onTransitionMs: (Float) -> Unit
+    transition: String, onTransition: (String) -> Unit, transitionMs: Float, onTransitionMs: (Float) -> Unit,
+    onSourceManager: () -> Unit, onSceneManager: () -> Unit
 ) {
     Column(modifier.background(Color(0xFF10141B)).padding(9.dp).verticalScroll(rememberScrollState())) {
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -264,7 +265,7 @@ private fun ObsRail(
         Spacer(Modifier.height(8.dp))
         when (activeTab) {
             "Studio" -> {
-                ObsSources(selectedSource, onSource, controller, store, onPickImage)
+                ObsSources(selectedSource, onSource, controller, store, onPickImage, onSourceManager)
                 Spacer(Modifier.height(8.dp))
                 ObsMixer(ui, controller, micVolume, onMicVolume, systemVolume, onSystemVolume)
                 Spacer(Modifier.height(8.dp))
