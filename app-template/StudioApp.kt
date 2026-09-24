@@ -491,7 +491,7 @@ private fun ObsRail(
             "Mixeur" -> ObsMixer(ui, controller, micVolume, onMicVolume, systemVolume, onSystemVolume)
             "Transitions" -> ObsTransitions(transition, onTransition, transitionMs, onTransitionMs)
             "Diffusion" -> ObsBroadcast(ui, controller, server, onServer, key, onKey)
-            "Outils" -> ObsTools(ui, controller, onSceneManager = { showSceneManager = true })
+            "Outils" -> ObsTools(ui, controller, onSceneManager)
         }
         ui.message?.let {
             Text(it, color = Color(0xFFFF3F5E), fontSize = 10.sp, modifier = Modifier.padding(8.dp))
