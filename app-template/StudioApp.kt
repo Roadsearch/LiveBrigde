@@ -1,6 +1,5 @@
 package com.livebridge.ui
 
-import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.compose.foundation.background
@@ -28,6 +27,7 @@ import com.livebridge.Prefs
 import com.livebridge.rtmp.*
 import com.livebridge.studio.StudioStore
 import com.livebridge.studio.Source
+import com.livebridge.gestures.LiveBridgeTransformEngine
 
 
 @Composable
@@ -349,81 +349,37 @@ private fun ObsPreview(controller: StreamController, ui: RtmpUi, store: StudioSt
             modifier = Modifier.fillMaxSize(),
             factory = { context ->
                 SurfaceView(context).also { view ->
-                    var lastX = 0f
-                    var lastY = 0f
-                    var startDistance = 0f
-                    var startSize = 25f
-                    var lastAngle = 0f
-                    var lastCenterX = 0f
-                    var lastCenterY = 0f
-                    var moved = false
-                    var downAt = 0L
-                    var downX = 0f
-                    var downY = 0f
-                    fun distance(e: MotionEvent): Float {
-                        if (e.pointerCount < 2) return 0f
-                        val dx = e.getX(1) - e.getX(0)
-                        val dy = e.getY(1) - e.getY(0)
-                        return kotlin.math.hypot(dx.toDouble(), dy.toDouble()).toFloat()
-                    }
-                    fun angle(e: MotionEvent): Float {
-                        if (e.pointerCount < 2) return 0f
-                        val dx = e.getX(1) - e.getX(0)
-                        val dy = e.getY(1) - e.getY(0)
-                        return Math.toDegrees(kotlin.math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
-                    }
-                    fun centerX(e: MotionEvent) = if (e.pointerCount >= 2) (e.getX(0) + e.getX(1)) / 2f else e.x
-                    fun centerY(e: MotionEvent) = if (e.pointerCount >= 2) (e.getY(0) + e.getY(1)) / 2f else e.y
-                    view.setOnTouchListener { v, event ->
-                        val source = latestSource ?: return@setOnTouchListener false
-                        val id = source.id
-                        when (event.actionMasked) {
-                            MotionEvent.ACTION_DOWN -> {
-                                lastX = event.x; lastY = event.y
-                                downX = event.x; downY = event.y
-                                downAt = System.currentTimeMillis(); moved = false
-                                true
+                    val engine = LiveBridgeTransformEngine(
+                        onTransform = { delta ->
+                            val w = view.width
+                            val h = view.height
+                            if (w > 0 && h > 0) {
+                                val dx = delta.panX / w * 100f
+                                val dy = delta.panY / h * 100f
+                                val px = delta.pivotX / w * 100f
+                                val py = delta.pivotY / h * 100f
+                                store.transformSource(
+                                    id = latestSource?.id ?: return@LiveBridgeTransformEngine,
+                                    dxPercent = dx,
+                                    dyPercent = dy,
+                                    scaleFactor = delta.scale,
+                                    rotationDelta = delta.rotationDegrees,
+                                    pivotXPercent = px,
+                                    pivotYPercent = py
+                                )
                             }
-                            MotionEvent.ACTION_POINTER_DOWN -> {
-                                if (event.pointerCount >= 2) {
-                                    startDistance = distance(event).coerceAtLeast(1f)
-                                    startSize = source.size
-                                    lastAngle = angle(event)
-                                    lastCenterX = centerX(event); lastCenterY = centerY(event)
-                                }
-                                true
-                            }
-                            MotionEvent.ACTION_MOVE -> {
-                                if (event.pointerCount >= 2 && startDistance > 0f) {
-                                    val scale = (distance(event) / startDistance).coerceIn(0.25f, 4f)
-                                    store.resizeSource(id, startSize * scale)
-                                    var delta = angle(event) - lastAngle
-                                    if (delta > 180f) delta -= 360f
-                                    if (delta < -180f) delta += 360f
-                                    if (kotlin.math.abs(delta) > 0.05f) store.rotateSource(id, delta)
-                                    lastAngle = angle(event)
-                                    val cx = centerX(event); val cy = centerY(event)
-                                    if (v.width > 0 && v.height > 0) store.moveSource(id, (cx-lastCenterX)/v.width*100f, (cy-lastCenterY)/v.height*100f)
-                                    lastCenterX = cx; lastCenterY = cy; moved = true
-                                } else {
-                                    val dx = event.x-lastX; val dy = event.y-lastY
-                                    if (v.width > 0 && v.height > 0 && (kotlin.math.abs(dx)>0.5f || kotlin.math.abs(dy)>0.5f)) {
-                                        store.moveSource(id, dx/v.width*100f, dy/v.height*100f); moved = true
-                                    }
-                                    lastX=event.x; lastY=event.y
-                                }
-                                true
-                            }
-                            MotionEvent.ACTION_UP -> {
-                                val held = System.currentTimeMillis()-downAt
-                                val movedDistance = kotlin.math.hypot((event.x-downX).toDouble(), (event.y-downY).toDouble())
-                                if (!moved && held < 280 && movedDistance < 24) store.resetTransform(id)
-                                startDistance=0f; true
-                            }
-                            MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_CANCEL -> { startDistance=0f; true }
-                            else -> false
+                        },
+                        onTap = {
+                            latestSource?.let { store.resetTransform(it.id) }
+                        },
+                        onDoubleTap = {
+                            latestSource?.let { store.resetTransform(it.id) }
+                        },
+                        onLongPress = {
+                            // Properties remain accessible through the source manager.
                         }
-                    }
+                    )
+                    view.setOnTouchListener(engine)
                     view.holder.addCallback(object : SurfaceHolder.Callback {
                         override fun surfaceCreated(holder: SurfaceHolder) { if (holder.surface.isValid) controller.attachPreview(view) }
                         override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) { if (holder.surface.isValid) controller.onPreviewSize(width, height) }
